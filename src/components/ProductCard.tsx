@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Bell, Eye } from 'lucide-react';
 import { Product } from '@/data/products';
@@ -116,9 +117,11 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
       {/* Product Info */}
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
-            {product.name}
-          </h3>
+          <Link to={`/product/${product.id}`}>
+            <h3 className="font-medium text-foreground group-hover:text-primary transition-colors hover:underline">
+              {product.name}
+            </h3>
+          </Link>
           <span className="font-semibold text-foreground">
             ${product.price}
           </span>
