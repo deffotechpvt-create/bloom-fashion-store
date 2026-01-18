@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ZoomIn, RotateCcw } from 'lucide-react';
 import { Product } from '@/data/products';
@@ -20,19 +20,40 @@ const imageMap: Record<string, string> = {
   '/products/shirt-1.jpg': shirt1,
 };
 
+// Color-based image overlay/tint mapping
+const colorOverlayMap: Record<string, string> = {
+  'Beige': 'sepia(30%) saturate(70%)',
+  'Charcoal': 'saturate(20%) brightness(70%)',
+  'Ivory': 'sepia(10%) brightness(105%)',
+  'Cream': 'sepia(20%) brightness(102%)',
+  'Navy': 'hue-rotate(200deg) saturate(150%) brightness(60%)',
+  'Black': 'saturate(0%) brightness(40%)',
+  'Sand': 'sepia(40%) saturate(60%) brightness(95%)',
+  'Olive': 'hue-rotate(60deg) saturate(80%) brightness(80%)',
+  'White': 'brightness(110%) saturate(50%)',
+  'Stone': 'sepia(20%) saturate(40%) brightness(85%)',
+};
+
 interface ProductImageGalleryProps {
   product: Product;
+  selectedColor?: string | null;
 }
 
-const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
+const ProductImageGallery = ({ product, selectedColor }: ProductImageGalleryProps) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [show360View, setShow360View] = useState(false);
 
+  // Reset selected index when color changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [selectedColor]);
+
   // Generate gallery images (using main image 3 times to simulate multiple angles)
   const mainImage = imageMap[product.image] || product.image;
   const galleryImages = [mainImage, mainImage, mainImage, mainImage];
+  const imageFilter = selectedColor ? colorOverlayMap[selectedColor] : '';
 
   const handlePrev = () => {
     setSelectedIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
@@ -74,16 +95,13 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             <img
               src={galleryImages[selectedIndex]}
               alt={`${product.name} - View ${selectedIndex + 1}`}
-              className={`w-full h-full object-cover transition-transform duration-300 ${
+              className={`w-full h-full object-cover transition-all duration-300 ${
                 isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
               }`}
-              style={
-                isZoomed
-                  ? {
-                      transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
-                    }
-                  : undefined
-              }
+              style={{
+                filter: imageFilter,
+                ...(isZoomed ? { transformOrigin: `${mousePosition.x}% ${mousePosition.y}%` } : {}),
+              }}
             />
           </motion.div>
         </AnimatePresence>
@@ -140,6 +158,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
               src={image}
               alt={`${product.name} thumbnail ${index + 1}`}
               className="w-full h-full object-cover"
+              style={{ filter: imageFilter }}
             />
           </button>
         ))}

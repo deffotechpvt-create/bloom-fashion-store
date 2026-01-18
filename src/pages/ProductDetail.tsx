@@ -20,7 +20,7 @@ const ProductDetail = () => {
   const product = products.find((p) => p.id === id);
   
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(product?.colors[0] || null);
   const [quantity, setQuantity] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -80,7 +80,7 @@ const ProductDetail = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
             {/* Image Gallery */}
-            <ProductImageGallery product={product} />
+            <ProductImageGallery product={product} selectedColor={selectedColor} />
 
             {/* Product Info */}
             <motion.div 
