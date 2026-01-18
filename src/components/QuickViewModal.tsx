@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Heart, Ruler, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ShoppingBag, Heart, Ruler } from 'lucide-react';
 import { Product } from '@/data/products';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -26,6 +26,33 @@ const imageMap: Record<string, string> = {
   '/products/shirt-1.jpg': shirt1,
 };
 
+// Color-based image overlay/tint mapping
+const colorOverlayMap: Record<string, string> = {
+  'Beige': 'sepia(30%) saturate(70%)',
+  'Charcoal': 'saturate(20%) brightness(70%)',
+  'Ivory': 'sepia(10%) brightness(105%)',
+  'Cream': 'sepia(20%) brightness(102%)',
+  'Navy': 'hue-rotate(200deg) saturate(150%) brightness(60%)',
+  'Black': 'saturate(0%) brightness(40%)',
+  'Sand': 'sepia(40%) saturate(60%) brightness(95%)',
+  'Olive': 'hue-rotate(60deg) saturate(80%) brightness(80%)',
+  'White': 'brightness(110%) saturate(50%)',
+  'Stone': 'sepia(20%) saturate(40%) brightness(85%)',
+};
+
+const colorSwatchMap: Record<string, string> = {
+  'Beige': 'bg-[#C4B7A6]',
+  'Charcoal': 'bg-[#36454F]',
+  'Ivory': 'bg-[#FFFFF0]',
+  'Cream': 'bg-[#FFFDD0]',
+  'Navy': 'bg-[#1B2838]',
+  'Black': 'bg-[#1A1A1A]',
+  'Sand': 'bg-[#C2B280]',
+  'Olive': 'bg-[#556B2F]',
+  'White': 'bg-white',
+  'Stone': 'bg-[#928E85]',
+};
+
 interface QuickViewModalProps {
   product: Product | null;
   isOpen: boolean;
@@ -39,11 +66,21 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Reset selections when product changes
+  useEffect(() => {
+    if (product) {
+      setSelectedColor(product.colors[0] || '');
+      setSelectedSize('');
+    }
+  }, [product]);
 
   if (!product) return null;
 
   const productImage = imageMap[product.image] || product.image;
   const isWishlisted = isInWishlist(product.id);
+  const imageFilter = selectedColor ? colorOverlayMap[selectedColor] : '';
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -76,6 +113,11 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
     });
   };
 
+  const handleImageClick = () => {
+    onClose();
+    navigate(`/product/${product.id}`);
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -96,13 +138,18 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
             >
               <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden">
                 <div className="grid md:grid-cols-2 gap-0 max-h-[85vh] overflow-y-auto">
-                  {/* Image */}
-                  <div className="relative aspect-[3/4] md:aspect-auto">
+                  {/* Image - Clickable to navigate to product details */}
+                  <div 
+                    className="relative aspect-[3/4] md:aspect-auto cursor-pointer group overflow-hidden"
+                    onClick={handleImageClick}
+                  >
                     <img
                       src={productImage}
                       alt={product.name}
-                      className="w-full h-full object-cover rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none"
+                      className="w-full h-full object-cover rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none transition-all duration-300 group-hover:scale-105"
+                      style={{ filter: imageFilter }}
                     />
+                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none" />
                     {product.isNew && (
                       <span className="absolute top-4 left-4 px-3 py-1 text-xs font-medium tracking-wider uppercase bg-primary text-primary-foreground rounded-full">
                         New
@@ -139,19 +186,21 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
                           <span className="text-sm font-medium">Color</span>
                           {selectedColor && <span className="text-sm text-muted-foreground">{selectedColor}</span>}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           {product.colors.map((color) => (
                             <button
                               key={color}
                               onClick={() => setSelectedColor(color)}
-                              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                                selectedColor === color
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                              className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                colorSwatchMap[color] || 'bg-secondary'
+                              } ${
+                                selectedColor === color 
+                                  ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' 
+                                  : 'border-border hover:border-muted-foreground'
                               }`}
-                            >
-                              {color}
-                            </button>
+                              aria-label={color}
+                              title={color}
+                            />
                           ))}
                         </div>
                       </div>
@@ -203,12 +252,6 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
                           <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-primary text-primary' : ''}`} />
                         </Button>
                       </div>
-
-                      <Link to={`/product/${product.id}`} onClick={onClose}>
-                        <Button variant="ghost" className="w-full">
-                          View Full Details
-                        </Button>
-                      </Link>
                     </div>
                   </div>
                 </div>
