@@ -89,13 +89,13 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
               className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
             >
-              <div className="bg-card rounded-2xl border border-border shadow-xl m-4">
-                <div className="grid md:grid-cols-2 gap-0">
+              <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden">
+                <div className="grid md:grid-cols-2 gap-0 max-h-[85vh] overflow-y-auto">
                   {/* Image */}
                   <div className="relative aspect-[3/4] md:aspect-auto">
                     <img
