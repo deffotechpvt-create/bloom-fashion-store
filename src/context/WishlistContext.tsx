@@ -1,69 +1,164 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect
+} from "react";
+import { useApi } from "../lib/api";
+import { useAuth } from "./AuthContext";
+
+// ------------------
+// Types
+// ------------------
 
 interface WishlistContextType {
   wishlist: string[];
-  addToWishlist: (productId: string) => void;
-  removeFromWishlist: (productId: string) => void;
+  isLoading: boolean;
+  addToWishlist: (productId: string) => Promise<void>;
+  removeFromWishlist: (productId: string) => Promise<void>;
+  toggleWishlist: (productId: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
-  toggleWishlist: (productId: string) => void;
 }
+
+// ------------------
+// Context
+// ------------------
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
-const WISHLIST_KEY = 'atelier_wishlist';
+const WISHLIST_KEY = "atelier_wishlist";
 
-export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// ------------------
+// Provider
+// ------------------
+
+export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
+
+  const api = useApi();
+  const { auth, isLoading: authLoading } = useAuth();
+
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ------------------
+  // Load wishlist on auth change
+  // ------------------
 
   useEffect(() => {
-    const stored = localStorage.getItem(WISHLIST_KEY);
-    if (stored) {
-      setWishlist(JSON.parse(stored));
-    }
-  }, []);
 
-  const saveWishlist = (items: string[]) => {
-    localStorage.setItem(WISHLIST_KEY, JSON.stringify(items));
-    setWishlist(items);
+    if (authLoading) return;
+
+    if (auth) {
+      fetchWishlist();
+    } else {
+      loadGuestWishlist();
+    }
+
+  }, [auth, authLoading]);
+
+  // ------------------
+  // Guest Helpers
+  // ------------------
+
+  const loadGuestWishlist = () => {
+    const local = localStorage.getItem(WISHLIST_KEY);
+    setWishlist(local ? JSON.parse(local) : []);
   };
 
-  const addToWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => {
-      if (prev.includes(productId)) return prev;
-      const updated = [...prev, productId];
-      localStorage.setItem(WISHLIST_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  const saveGuestWishlist = (items: string[]) => {
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(items));
+  };
 
-  const removeFromWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => {
-      const updated = prev.filter((id) => id !== productId);
-      localStorage.setItem(WISHLIST_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  // ------------------
+  // Backend Fetch
+  // ------------------
 
-  const isInWishlist = useCallback((productId: string) => {
-    return wishlist.includes(productId);
-  }, [wishlist]);
-
-  const toggleWishlist = useCallback((productId: string) => {
-    if (wishlist.includes(productId)) {
-      removeFromWishlist(productId);
-    } else {
-      addToWishlist(productId);
+  const fetchWishlist = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get("/wishlist");
+      setWishlist(res.data.items || []);
+    } catch {
+      setWishlist([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [wishlist, addToWishlist, removeFromWishlist]);
+  };
+
+  // ------------------
+  // Add Wishlist
+  // ------------------
+
+  const addToWishlist = async (productId: string) => {
+
+    if (!auth) {
+
+      setWishlist(prev => {
+        if (prev.includes(productId)) return prev;
+
+        const updated = [...prev, productId];
+        saveGuestWishlist(updated);
+        return updated;
+      });
+
+      return;
+    }
+
+    await api.post("/wishlist/add", { productId });
+    await fetchWishlist();
+  };
+
+  // ------------------
+  // Remove Wishlist
+  // ------------------
+
+  const removeFromWishlist = async (productId: string) => {
+
+    if (!auth) {
+
+      setWishlist(prev => {
+        const updated = prev.filter(id => id !== productId);
+        saveGuestWishlist(updated);
+        return updated;
+      });
+
+      return;
+    }
+
+    await api.delete(`/wishlist/remove/${productId}`);
+    await fetchWishlist();
+  };
+
+  // ------------------
+  // Toggle Wishlist
+  // ------------------
+
+  const toggleWishlist = async (productId: string) => {
+
+    if (wishlist.includes(productId)) {
+      await removeFromWishlist(productId);
+    } else {
+      await addToWishlist(productId);
+    }
+  };
+
+  // ------------------
+  // Check Exists
+  // ------------------
+
+  const isInWishlist = (productId: string) => {
+    return wishlist.includes(productId);
+  };
 
   return (
     <WishlistContext.Provider
       value={{
         wishlist,
+        isLoading,
         addToWishlist,
         removeFromWishlist,
-        isInWishlist,
         toggleWishlist,
+        isInWishlist
       }}
     >
       {children}
@@ -71,10 +166,17 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
+// ------------------
+// Hook
+// ------------------
+
 export const useWishlist = () => {
-  const context = useContext(WishlistContext);
-  if (!context) {
-    throw new Error('useWishlist must be used within a WishlistProvider');
+
+  const ctx = useContext(WishlistContext);
+
+  if (!ctx) {
+    throw new Error("useWishlist must be used inside WishlistProvider");
   }
-  return context;
+
+  return ctx;
 };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Bell, Eye, Heart } from 'lucide-react';
-import { Product } from '@/data/products';
+import { Product } from '@/types/Product';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import QuickViewModal from './QuickViewModal';
@@ -30,7 +30,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, index }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[2]);
+  const [selectedSize, setSelectedSize] = useState(product.sizes?.[2] || product.sizes?.[0] || '');
   const [showQuickView, setShowQuickView] = useState(false);
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();

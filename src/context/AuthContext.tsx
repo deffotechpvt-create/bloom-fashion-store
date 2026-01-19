@@ -1,156 +1,126 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useApi } from "../lib/api";
 
-export interface User {
+// ----------------------
+// Types
+// ----------------------
+
+export type UserRole = "customer" | "admin";
+
+export interface AuthUser {
   id: string;
-  email: string;
   name: string;
-  avatar?: string;
-  isAdmin?: boolean;
+  email: string;
+  role: UserRole;
 }
 
-export interface Order {
-  id: string;
-  userId: string;
-  items: Array<{
-    productId: string;
-    productName: string;
-    quantity: number;
-    size: string;
-    color: string;
-    price: number;
-  }>;
-  total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
-  createdAt: string;
+interface LoginResponse {
+  success: boolean;
+  error?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  updateProfile: (data: Partial<User>) => void;
-  orders: Order[];
-  addOrder: (order: Omit<Order, 'id' | 'userId' | 'createdAt'>) => void;
+  auth: boolean;
+  login: (email: string, password: string) => Promise<LoginResponse>;
+  logout: () => Promise<void>;
 }
+
+// ----------------------
+// Context
+// ----------------------
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USERS_KEY = 'atelier_users';
-const CURRENT_USER_KEY = 'atelier_current_user';
-const ORDERS_KEY = 'atelier_orders';
+// ----------------------
+// Provider
+// ----------------------
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
-  useEffect(() => {
-    // Load user from localStorage
-    const storedUser = localStorage.getItem(CURRENT_USER_KEY);
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      loadOrders(parsedUser.id);
+  const api = useApi();
+
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const auth = !!user;
+
+  // --------------------
+  // Restore session
+  // --------------------
+  const restoreSession = async () => {
+    try {
+      const res = await api.get("/auth/profile");
+
+      setUser(res.data.user as AuthUser);
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
-
-  const loadOrders = (userId: string) => {
-    const allOrders = JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]');
-    setOrders(allOrders.filter((order: Order) => order.userId === userId));
   };
 
-  const login = useCallback(async (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
-      loadOrders(userWithoutPassword.id);
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
+  useEffect(() => {
+
+    const handler = (e: any) => {
+      setUser(e.detail);
+    };
+
+    window.addEventListener("auth:user:update", handler);
+
+    return () => {
+      window.removeEventListener("auth:user:update", handler);
+    };
+
+  }, []);
+
+  // --------------------
+  // Login
+  // --------------------
+  const login = async (email: string, password: string): Promise<LoginResponse> => {
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      setUser(res.data.user as AuthUser);
       return { success: true };
+
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.message || "Login failed"
+      };
     }
-    
-    return { success: false, error: 'Invalid email or password' };
-  }, []);
+  };
 
-  const signup = useCallback(async (email: string, password: string, name: string) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    
-    if (users.some((u: any) => u.email === email)) {
-      return { success: false, error: 'Email already exists' };
+  // --------------------
+  // Logout
+  // --------------------
+  const logout = async (): Promise<void> => {
+    try {
+      await api.post("/auth/logout");
+    } finally {
+      setUser(null);
     }
-    
-    const newUser = {
-      id: `user_${Date.now()}`,
-      email,
-      password,
-      name,
-      isAdmin: email === 'admin@atelier.com', // Admin account
-    };
-    
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
-    
-    return { success: true };
-  }, []);
+  };
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setOrders([]);
-    localStorage.removeItem(CURRENT_USER_KEY);
-  }, []);
-
-  const updateProfile = useCallback((data: Partial<User>) => {
-    if (!user) return;
-    
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-    
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...data };
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    }
-  }, [user]);
-
-  const addOrder = useCallback((orderData: Omit<Order, 'id' | 'userId' | 'createdAt'>) => {
-    if (!user) return;
-    
-    const newOrder: Order = {
-      ...orderData,
-      id: `order_${Date.now()}`,
-      userId: user.id,
-      createdAt: new Date().toISOString(),
-    };
-    
-    const allOrders = JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]');
-    allOrders.push(newOrder);
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(allOrders));
-    setOrders((prev) => [...prev, newOrder]);
-  }, [user]);
+  // --------------------
+  // Derived state
+  // --------------------
+  const isAdmin = user?.role === "admin";
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        auth,
+        isAdmin,
         isLoading,
         login,
-        signup,
-        logout,
-        updateProfile,
-        orders,
-        addOrder,
+        logout
       }}
     >
       {children}
@@ -158,10 +128,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+// ----------------------
+// Hook
+// ----------------------
+
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
+
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used inside AuthProvider");
   }
+
   return context;
 };

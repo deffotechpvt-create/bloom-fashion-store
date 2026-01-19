@@ -1,24 +1,116 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 lerna-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
 
-node_modules
-dist
-dist-ssr
-*.local
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.grunt
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Uploads (if you add file upload feature later)
+uploads/
+public/uploads/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# MongoDB local database files (if using local MongoDB)
+data/
+mongodb/
+
+# Redis dump file (if using Redis)
+dump.rdb
+
+# Cloudinary config (if using)
+.cloudinaryrc
+
+# Certificates and keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Miscellaneous
+.env.backup
+TODO.md
+NOTES.md
+scratch.js
+test.js

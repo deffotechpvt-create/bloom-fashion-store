@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Package, Users, ShoppingCart, DollarSign, 
+import {
+  Package, Users, ShoppingCart, DollarSign,
   Plus, Edit, Trash2, ArrowLeft, Eye, EyeOff,
   TrendingUp, AlertCircle
 } from 'lucide-react';
-import { useAuth, Order } from '@/context/AuthContext';
-import { products as initialProducts, Product } from '@/data/products';
+import { useAuth } from '@/context/AuthContext';
+import { useApi } from '@/lib/api';
+
+export interface Order {
+  id: string;
+  items: any[];
+  total: number;
+  status: string;
+  createdAt: string;
+}
+import type { Product } from '@/types/Product';
+import { useProducts } from '@/context/ProductsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,11 +36,12 @@ import Footer from '@/components/Footer';
 const ADMIN_PRODUCTS_KEY = 'atelier_admin_products';
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { products: apiProducts, createProduct, updateProduct, deleteProduct } = useProducts();
+
   const [activeTab, setActiveTab] = useState('overview');
-  const [productsList, setProductsList] = useState<Product[]>([]);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -39,24 +50,18 @@ const Admin = () => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    category: 'Essentials',
+    category: 'fashion',
     description: '',
     sizes: 'XS, S, M, L, XL',
-    colors: '',
+    colors: 'Black, White',
+    stock: '10',
     inStock: true,
     isNew: false,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load products from localStorage or use initial
-    const stored = localStorage.getItem(ADMIN_PRODUCTS_KEY);
-    if (stored) {
-      setProductsList(JSON.parse(stored));
-    } else {
-      setProductsList(initialProducts);
-      localStorage.setItem(ADMIN_PRODUCTS_KEY, JSON.stringify(initialProducts));
-    }
-
     // Load all orders
     const ordersStored = localStorage.getItem('atelier_orders');
     if (ordersStored) {
@@ -64,7 +69,7 @@ const Admin = () => {
     }
   }, []);
 
-  if (!user || !user.isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -83,38 +88,45 @@ const Admin = () => {
     );
   }
 
-  const saveProducts = (updated: Product[]) => {
-    setProductsList(updated);
-    localStorage.setItem(ADMIN_PRODUCTS_KEY, JSON.stringify(updated));
-  };
-
-  const handleSubmitProduct = (e: React.FormEvent) => {
+  const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const productData: Product = {
-      id: editingProduct?.id || `prod_${Date.now()}`,
-      name: formData.name,
-      price: parseFloat(formData.price),
-      category: formData.category,
-      image: editingProduct?.image || '/products/tshirt-1.jpg',
-      description: formData.description,
-      sizes: formData.sizes.split(',').map((s) => s.trim()),
-      colors: formData.colors.split(',').map((c) => c.trim()),
-      inStock: formData.inStock,
-      isNew: formData.isNew,
-    };
 
-    if (editingProduct) {
-      const updated = productsList.map((p) => (p.id === editingProduct.id ? productData : p));
-      saveProducts(updated);
-      toast({ title: 'Product updated successfully' });
-    } else {
-      saveProducts([...productsList, productData]);
-      toast({ title: 'Product created successfully' });
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('price', formData.price);
+    data.append('category', formData.category.toLowerCase());
+    data.append('description', formData.description);
+    data.append('stock', formData.stock);
+
+    // Convert arrays back to comma strings if they weren't edited properly or handles as arrays
+    const sizesArr = formData.sizes.split(',').map(s => s.trim()).filter(Boolean);
+    const colorsArr = formData.colors.split(',').map(c => c.trim()).filter(Boolean);
+
+    sizesArr.forEach(s => data.append('sizes', s));
+    colorsArr.forEach(c => data.append('colors', c));
+
+    if (imageFile) {
+      data.append('image', imageFile);
     }
 
-    resetForm();
-    setIsProductDialogOpen(false);
+    try {
+      let result;
+      if (editingProduct) {
+        result = await updateProduct(editingProduct.id, data);
+        if (result) toast({ title: 'Product updated successfully' });
+      } else {
+        result = await createProduct(data);
+        if (result) toast({ title: 'Product created successfully' });
+      }
+
+      if (result) {
+        resetForm();
+        setIsProductDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Submit product error:', err);
+      toast({ title: 'Operation failed', variant: 'destructive' });
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -123,39 +135,42 @@ const Admin = () => {
       name: product.name,
       price: product.price.toString(),
       category: product.category,
-      description: product.description,
-      sizes: product.sizes.join(', '),
-      colors: product.colors.join(', '),
-      inStock: product.inStock,
+      description: product.description || '',
+      sizes: (product.sizes || []).join(', '),
+      colors: (product.colors || []).join(', '),
+      stock: (product.stock || 0).toString(),
+      inStock: product.inStock || true,
       isNew: product.isNew || false,
     });
+    setImagePreview(product.image || null);
     setIsProductDialogOpen(true);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      const updated = productsList.filter((p) => p.id !== productId);
-      saveProducts(updated);
-      toast({ title: 'Product deleted' });
+      const ok = await deleteProduct(productId);
+      if (ok) toast({ title: 'Product deleted' });
     }
   };
 
-  const toggleProductStock = (productId: string) => {
-    const updated = productsList.map((p) =>
-      p.id === productId ? { ...p, inStock: !p.inStock } : p
-    );
-    saveProducts(updated);
+  const toggleProductStock = async (product: Product) => {
+    const data = new FormData();
+    data.append('stock', product.inStock ? '0' : '10'); // Toggle between 0 and 10
+    await updateProduct(product.id, data);
   };
 
   const resetForm = () => {
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview(null);
     setFormData({
       name: '',
       price: '',
-      category: 'Essentials',
+      category: 'fashion',
       description: '',
       sizes: 'XS, S, M, L, XL',
-      colors: '',
+      colors: 'Black, White',
+      stock: '10',
       inStock: true,
       isNew: false,
     });
@@ -164,8 +179,8 @@ const Admin = () => {
   // Stats
   const totalRevenue = allOrders.reduce((sum, o) => sum + o.total, 0);
   const totalOrders = allOrders.length;
-  const totalProducts = productsList.length;
-  const inStockProducts = productsList.filter((p) => p.inStock).length;
+  const totalProducts = apiProducts.length;
+  const inStockProducts = apiProducts.filter((p) => p.inStock).length;
 
   const stats = [
     { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-green-500' },
@@ -183,7 +198,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-6">
           <motion.div
@@ -225,11 +240,10 @@ const Admin = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                  }`}
+                  className={`px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -241,11 +255,11 @@ const Admin = () => {
               {activeTab === 'overview' && (
                 <div>
                   <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
-                  {allOrders.length === 0 ? (
+                  {(allOrders || []).length === 0 ? (
                     <p className="text-muted-foreground">No orders yet.</p>
                   ) : (
                     <div className="space-y-4">
-                      {allOrders.slice(0, 5).map((order) => (
+                      {(allOrders || []).slice(0, 5).map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-4 bg-secondary rounded-xl">
                           <div>
                             <p className="font-medium">Order #{order.id.slice(-8)}</p>
@@ -255,11 +269,10 @@ const Admin = () => {
                           </div>
                           <div className="text-right">
                             <p className="font-semibold">${order.total.toFixed(2)}</p>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
+                            <span className={`text-xs px-2 py-1 rounded-full ${order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
                               order.status === 'shipped' ? 'bg-blue-500/20 text-blue-500' :
-                              'bg-yellow-500/20 text-yellow-500'
-                            }`}>
+                                'bg-yellow-500/20 text-yellow-500'
+                              }`}>
                               {order.status}
                             </span>
                           </div>
@@ -273,7 +286,7 @@ const Admin = () => {
               {activeTab === 'products' && (
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Products ({productsList.length})</h2>
+                    <h2 className="text-xl font-semibold">Products ({apiProducts.length})</h2>
                     <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
                       setIsProductDialogOpen(open);
                       if (!open) resetForm();
@@ -318,12 +331,15 @@ const Admin = () => {
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                 className="w-full px-3 py-2 rounded-md border border-input bg-background"
                               >
-                                <option value="Essentials">Essentials</option>
-                                <option value="Outerwear">Outerwear</option>
-                                <option value="Knitwear">Knitwear</option>
-                                <option value="Tailoring">Tailoring</option>
-                                <option value="Shirts">Shirts</option>
-                                <option value="Seasonal">Seasonal</option>
+                                <option value="fashion">Fashion</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="home">Home</option>
+                                <option value="books">Books</option>
+                                <option value="sports">Sports</option>
+                                <option value="beauty">Beauty</option>
+                                <option value="toys">Toys</option>
+                                <option value="food">Food</option>
+                                <option value="other">Other</option>
                               </select>
                             </div>
                           </div>
@@ -336,23 +352,53 @@ const Admin = () => {
                               required
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="sizes">Sizes (comma-separated)</Label>
+                              <Label htmlFor="sizes">Sizes</Label>
                               <Input
                                 id="sizes"
                                 value={formData.sizes}
                                 onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                                placeholder="XS, S, M"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="colors">Colors (comma-separated)</Label>
+                              <Label htmlFor="colors">Colors</Label>
                               <Input
                                 id="colors"
                                 value={formData.colors}
                                 onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                                placeholder="Black, White"
                               />
                             </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="stock">Stock</Label>
+                              <Input
+                                id="stock"
+                                type="number"
+                                value={formData.stock}
+                                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2 pt-2">
+                            <Label htmlFor="image">Product Image</Label>
+                            <input
+                              id="image"
+                              type="file"
+                              accept="image/*"
+                              aria-label="Product image"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0] || null;
+                                setImageFile(f);
+                                setImagePreview(f ? URL.createObjectURL(f) : null);
+                              }}
+                              className="w-full"
+                            />
+                            {imagePreview && (
+                              <img src={imagePreview} alt="preview" className="w-32 h-32 object-cover rounded-md mt-2" />
+                            )}
                           </div>
                           <div className="flex gap-6">
                             <label className="flex items-center gap-2">
@@ -399,11 +445,13 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {productsList.map((product) => (
+                        {apiProducts.map((product) => (
                           <tr key={product.id} className="border-b border-border last:border-0">
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-12 bg-secondary rounded-lg flex-shrink-0" />
+                                <div className="w-10 h-12 bg-secondary rounded-lg flex-shrink-0 overflow-hidden">
+                                  {product.image && <img src={product.image} className="w-full h-full object-cover" alt="" />}
+                                </div>
                                 <div>
                                   <p className="font-medium">{product.name}</p>
                                   {product.isNew && (
@@ -416,10 +464,9 @@ const Admin = () => {
                             <td className="py-4 px-4">${product.price}</td>
                             <td className="py-4 px-4">
                               <button
-                                onClick={() => toggleProductStock(product.id)}
-                                className={`flex items-center gap-1 text-sm ${
-                                  product.inStock ? 'text-green-500' : 'text-red-500'
-                                }`}
+                                onClick={() => toggleProductStock(product)}
+                                className={`flex items-center gap-1 text-sm ${product.inStock ? 'text-green-500' : 'text-red-500'
+                                  }`}
                               >
                                 {product.inStock ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                                 {product.inStock ? 'In Stock' : 'Out of Stock'}
@@ -429,12 +476,14 @@ const Admin = () => {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => handleEditProduct(product)}
+                                  aria-label={`Edit ${product.name}`}
                                   className="p-2 hover:bg-secondary rounded-lg transition-colors"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteProduct(product.id)}
+                                  aria-label={`Delete ${product.name}`}
                                   className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -467,12 +516,11 @@ const Admin = () => {
                             </div>
                             <div className="text-right">
                               <p className="font-semibold">${order.total.toFixed(2)}</p>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
+                              <span className={`text-xs px-2 py-1 rounded-full ${order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
                                 order.status === 'shipped' ? 'bg-blue-500/20 text-blue-500' :
-                                order.status === 'processing' ? 'bg-yellow-500/20 text-yellow-500' :
-                                'bg-muted text-muted-foreground'
-                              }`}>
+                                  order.status === 'processing' ? 'bg-yellow-500/20 text-yellow-500' :
+                                    'bg-muted text-muted-foreground'
+                                }`}>
                                 {order.status}
                               </span>
                             </div>

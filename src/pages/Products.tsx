@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-import { products, categories } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
+import type { Product } from '@/types/Product';
 import ProductCard from '@/components/ProductCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,21 +12,25 @@ import { Slider } from '@/components/ui/slider';
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
   const [showFilters, setShowFilters] = useState(false);
 
-  const allColors = useMemo(() => 
-    [...new Set(products.flatMap((p) => p.colors))],
-    []
+  const { products } = useProducts();
+
+  const allColors = useMemo(() =>
+    [...new Set(products.flatMap((p: Product) => p.colors || []))],
+    [products]
   );
 
-  const allSizes = useMemo(() => 
-    [...new Set(products.flatMap((p) => p.sizes))],
-    []
+  const allSizes = useMemo(() =>
+    [...new Set(products.flatMap((p: Product) => p.sizes || []))],
+    [products]
   );
+
+  const categories = useMemo(() => ['All', ...Array.from(new Set(products.map((p: Product) => p.category)))], [products]);
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -57,7 +62,7 @@ const Products = () => {
     }
 
     return result;
-  }, [selectedCategory, priceRange, selectedColors, selectedSizes, sortBy]);
+  }, [products, selectedCategory, priceRange, selectedColors, selectedSizes, sortBy]);
 
   const toggleColor = (color: string) => {
     setSelectedColors((prev) =>
@@ -73,24 +78,24 @@ const Products = () => {
 
   const clearFilters = () => {
     setSelectedCategory('All');
-    setPriceRange([0, 500]);
+    setPriceRange([0, 5000]);
     setSelectedColors([]);
     setSelectedSizes([]);
     setSortBy('featured');
   };
 
-  const hasActiveFilters = 
-    selectedCategory !== 'All' || 
-    priceRange[0] !== 0 || 
-    priceRange[1] !== 500 || 
-    selectedColors.length > 0 || 
+  const hasActiveFilters =
+    selectedCategory !== 'All' ||
+    priceRange[0] !== 0 ||
+    priceRange[1] !== 5000 ||
+    selectedColors.length > 0 ||
     selectedSizes.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <CartDrawer />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-6">
           <motion.div
@@ -150,11 +155,10 @@ const Products = () => {
                         <button
                           key={category}
                           onClick={() => setSelectedCategory(category)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedCategory === category
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedCategory === category
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {category}
                         </button>
@@ -169,7 +173,7 @@ const Products = () => {
                       value={priceRange}
                       onValueChange={setPriceRange}
                       min={0}
-                      max={500}
+                      max={5000}
                       step={10}
                       className="mb-2"
                     />
@@ -187,11 +191,10 @@ const Products = () => {
                         <button
                           key={color}
                           onClick={() => toggleColor(color)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedColors.includes(color)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedColors.includes(color)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {color}
                         </button>
@@ -207,11 +210,10 @@ const Products = () => {
                         <button
                           key={size}
                           onClick={() => toggleSize(size)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedSizes.includes(size)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedSizes.includes(size)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {size}
                         </button>
@@ -229,7 +231,7 @@ const Products = () => {
                     <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
                   </div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                     layout
                   >

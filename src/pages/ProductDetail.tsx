@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Minus, Plus, Heart, Share2, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
-import { products, Product } from '@/data/products';
+import { Product } from '@/types/Product';
+import { useProducts } from '@/context/ProductsContext';
 import { useCart } from '@/context/CartContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -16,11 +17,23 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addItem } = useCart();
-  
-  const product = products.find((p) => p.id === id);
-  
+
+  const { getProductById } = useProducts();
+  const [productState, setProductState] = useState<Product | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (!id) return;
+      const p = await getProductById(id);
+      setProductState(p);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const product = productState;
+
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(product?.colors[0] || null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(product?.colors?.[0] || null);
   const [quantity, setQuantity] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -40,9 +53,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!selectedSize || !selectedColor) return;
-    for (let i = 0; i < quantity; i++) {
-      addItem(product, selectedSize, selectedColor);
-    }
+    addItem(product, selectedSize, selectedColor, quantity);
   };
 
   const canAddToCart = product.inStock && selectedSize && selectedColor;
@@ -64,11 +75,11 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <CartDrawer />
-      
+
       <main className="pt-20">
         {/* Breadcrumb */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -83,7 +94,7 @@ const ProductDetail = () => {
             <ProductImageGallery product={product} selectedColor={selectedColor} />
 
             {/* Product Info */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -111,11 +122,11 @@ const ProductDetail = () => {
                       className="p-3 rounded-full bg-secondary hover:bg-accent transition-colors"
                       aria-label="Add to wishlist"
                     >
-                      <Heart 
-                        className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-primary text-primary' : 'text-foreground'}`} 
+                      <Heart
+                        className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-primary text-primary' : 'text-foreground'}`}
                       />
                     </button>
-                    <button 
+                    <button
                       className="p-3 rounded-full bg-secondary hover:bg-accent transition-colors"
                       aria-label="Share"
                     >
@@ -145,13 +156,11 @@ const ProductDetail = () => {
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`w-10 h-10 rounded-full border-2 transition-all ${
-                        colorMap[color] || 'bg-secondary'
-                      } ${
-                        selectedColor === color 
-                          ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' 
+                      className={`w-10 h-10 rounded-full border-2 transition-all ${colorMap[color] || 'bg-secondary'
+                        } ${selectedColor === color
+                          ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
                           : 'border-border hover:border-muted-foreground'
-                      }`}
+                        }`}
                       aria-label={color}
                       title={color}
                     />
@@ -165,7 +174,7 @@ const ProductDetail = () => {
                   <span className="text-sm font-medium text-foreground">
                     Size: <span className="text-muted-foreground">{selectedSize || 'Select a size'}</span>
                   </span>
-                  <button 
+                  <button
                     onClick={() => setShowSizeGuide(true)}
                     className="text-sm text-primary hover:underline font-medium"
                   >
@@ -177,11 +186,10 @@ const ProductDetail = () => {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-5 py-3 text-sm font-medium rounded-xl border transition-all ${
-                        selectedSize === size
+                      className={`px-5 py-3 text-sm font-medium rounded-xl border transition-all ${selectedSize === size
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-secondary text-foreground border-border hover:border-muted-foreground'
-                      }`}
+                        }`}
                     >
                       {size}
                     </button>
@@ -221,11 +229,10 @@ const ProductDetail = () => {
                     whileTap={{ scale: 0.99 }}
                     onClick={handleAddToCart}
                     disabled={!canAddToCart}
-                    className={`w-full py-4 px-8 text-lg font-semibold rounded-2xl transition-all ${
-                      canAddToCart
+                    className={`w-full py-4 px-8 text-lg font-semibold rounded-2xl transition-all ${canAddToCart
                         ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                         : 'bg-secondary text-muted-foreground cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     {canAddToCart ? 'Add to Bag' : 'Select Size & Color'}
                   </motion.button>
@@ -261,11 +268,11 @@ const ProductDetail = () => {
 
       <Footer />
       <MobileBottomBar />
-      
+
       {/* Size Guide Modal */}
-      <SizeGuideModal 
-        isOpen={showSizeGuide} 
-        onClose={() => setShowSizeGuide(false)} 
+      <SizeGuideModal
+        isOpen={showSizeGuide}
+        onClose={() => setShowSizeGuide(false)}
         category={product.category}
       />
     </div>

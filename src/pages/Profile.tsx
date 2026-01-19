@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { User, Mail, LogOut, Package, Heart, Settings, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
 
 const Profile = () => {
-  const { user, logout, updateProfile, orders } = useAuth();
+  const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,6 +38,8 @@ const Profile = () => {
       </div>
     );
   }
+
+  const { products } = useProducts();
 
   const handleLogout = () => {
     logout();

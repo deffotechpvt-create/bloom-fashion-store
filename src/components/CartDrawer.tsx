@@ -82,7 +82,7 @@ const CartDrawer = () => {
                   <AnimatePresence mode="popLayout">
                     {items.map((item) => (
                       <motion.li
-                        key={`${item.product.id}-${item.size}-${item.color}`}
+                        key={`${item.productId}-${item.size}-${item.color}`}
                         layout
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -92,8 +92,8 @@ const CartDrawer = () => {
                         {/* Product Image */}
                         <div className="w-24 h-32 rounded-xl overflow-hidden bg-secondary flex-shrink-0">
                           <img
-                            src={imageMap[item.product.image] || item.product.image}
-                            alt={item.product.name}
+                            src={imageMap[item.image] || item.image}
+                            alt={item.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -103,14 +103,14 @@ const CartDrawer = () => {
                           <div className="flex justify-between">
                             <div>
                               <h3 className="font-medium text-foreground">
-                                {item.product.name}
+                                {item.name}
                               </h3>
                               <p className="text-sm text-muted-foreground mt-1">
                                 {item.size} · {item.color}
                               </p>
                             </div>
                             <button
-                              onClick={() => removeItem(item.product.id, item.size, item.color)}
+                              onClick={() => removeItem(item.productId, item.size, item.color)}
                               className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                               aria-label="Remove item"
                             >
@@ -124,7 +124,7 @@ const CartDrawer = () => {
                               <button
                                 onClick={() =>
                                   updateQuantity(
-                                    item.product.id,
+                                    item.productId,
                                     item.size,
                                     item.color,
                                     item.quantity - 1
@@ -141,7 +141,7 @@ const CartDrawer = () => {
                               <button
                                 onClick={() =>
                                   updateQuantity(
-                                    item.product.id,
+                                    item.productId,
                                     item.size,
                                     item.color,
                                     item.quantity + 1
@@ -156,7 +156,7 @@ const CartDrawer = () => {
 
                             {/* Price */}
                             <span className="font-semibold text-foreground">
-                              ${item.product.price * item.quantity}
+                              ${item.price}
                             </span>
                           </div>
                         </div>

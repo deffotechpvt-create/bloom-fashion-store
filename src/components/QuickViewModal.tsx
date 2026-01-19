@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Heart, Ruler } from 'lucide-react';
-import { Product } from '@/data/products';
+import { Product } from '@/types/Product';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { Button } from '@/components/ui/button';
