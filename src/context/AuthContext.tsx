@@ -7,11 +7,22 @@ import { useApi } from "../lib/api";
 
 export type UserRole = "customer" | "admin";
 
+export interface UserAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+}
+
 export interface AuthUser {
   id: string;
+  _id?: string; // ✅ Backend might use _id
   name: string;
   email: string;
+  phone?: string; // ✅ Added phone
   role: UserRole;
+  address?: UserAddress; // ✅ Added address
 }
 
 interface LoginResponse {
@@ -26,6 +37,7 @@ interface AuthContextType {
   auth: boolean;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
+  updateUserProfile: (updates: Partial<AuthUser>) => void; // ✅ Added helper
 }
 
 // ----------------------
@@ -39,7 +51,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // ----------------------
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-
   const api = useApi();
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -52,8 +63,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const restoreSession = async () => {
     try {
       const res = await api.get("/auth/profile");
+      
+      // ✅ Transform backend user to frontend format
+      const backendUser = res.data.user;
+      const transformedUser: AuthUser = {
+        id: backendUser._id || backendUser.id,
+        _id: backendUser._id,
+        name: backendUser.name,
+        email: backendUser.email,
+        phone: backendUser.phone,
+        role: backendUser.role,
+        address: backendUser.address ? {
+          street: backendUser.address.street,
+          city: backendUser.address.city,
+          state: backendUser.address.state,
+          pincode: backendUser.address.pincode,
+          country: backendUser.address.country
+        } : undefined
+      };
 
-      setUser(res.data.user as AuthUser);
+      setUser(transformedUser);
     } catch {
       setUser(null);
     } finally {
@@ -65,10 +94,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     restoreSession();
   }, []);
 
+  // ✅ Listen for user profile updates from UserContext
   useEffect(() => {
-
     const handler = (e: any) => {
-      setUser(e.detail);
+      const updatedUser = e.detail;
+      
+      // ✅ Merge updates with existing user
+      setUser(prev => {
+        if (!prev) return null;
+        
+        return {
+          ...prev,
+          id: updatedUser._id || updatedUser.id || prev.id,
+          _id: updatedUser._id || prev._id,
+          name: updatedUser.name || prev.name,
+          email: updatedUser.email || prev.email,
+          phone: updatedUser.phone || prev.phone,
+          role: updatedUser.role || prev.role,
+          address: updatedUser.address ? {
+            street: updatedUser.address.street,
+            city: updatedUser.address.city,
+            state: updatedUser.address.state,
+            pincode: updatedUser.address.pincode,
+            country: updatedUser.address.country
+          } : prev.address
+        };
+      });
     };
 
     window.addEventListener("auth:user:update", handler);
@@ -76,7 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener("auth:user:update", handler);
     };
-
   }, []);
 
   // --------------------
@@ -85,9 +135,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<LoginResponse> => {
     try {
       const res = await api.post("/auth/login", { email, password });
-      setUser(res.data.user as AuthUser);
-      return { success: true };
+      
+      // ✅ Transform backend user to frontend format
+      const backendUser = res.data.user;
+      const transformedUser: AuthUser = {
+        id: backendUser._id || backendUser.id,
+        _id: backendUser._id,
+        name: backendUser.name,
+        email: backendUser.email,
+        phone: backendUser.phone,
+        role: backendUser.role,
+        address: backendUser.address ? {
+          street: backendUser.address.street,
+          city: backendUser.address.city,
+          state: backendUser.address.state,
+          pincode: backendUser.address.pincode,
+          country: backendUser.address.country
+        } : undefined
+      };
 
+      setUser(transformedUser);
+      return { success: true };
     } catch (err: any) {
       return {
         success: false,
@@ -108,6 +176,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // --------------------
+  // ✅ Update user profile locally (syncs with UserContext)
+  // --------------------
+  const updateUserProfile = (updates: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      return { ...prev, ...updates };
+    });
+  };
+
+  // --------------------
   // Derived state
   // --------------------
   const isAdmin = user?.role === "admin";
@@ -120,7 +198,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAdmin,
         isLoading,
         login,
-        logout
+        logout,
+        updateUserProfile // ✅ Exposed
       }}
     >
       {children}

@@ -9,6 +9,7 @@ import pants1 from '@/assets/products/pants-1.jpg';
 import tshirt1 from '@/assets/products/tshirt-1.jpg';
 import blazer1 from '@/assets/products/blazer-1.jpg';
 import shirt1 from '@/assets/products/shirt-1.jpg';
+import { useNavigate } from 'react-router-dom';
 
 const imageMap: Record<string, string> = {
   '/products/coat-1.jpg': coat1,
@@ -21,6 +22,7 @@ const imageMap: Record<string, string> = {
 
 const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, updateQuantity, total, itemCount } = useCart();
+  const navigate = useNavigate();
 
   return (
     <AnimatePresence>
@@ -178,6 +180,10 @@ const CartDrawer = () => {
                   Shipping and taxes calculated at checkout
                 </p>
                 <motion.button
+                  onClick={() => {
+                    closeCart();
+                    navigate('/checkout');
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full py-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors"

@@ -126,12 +126,6 @@ const Login = () => {
                   </Link>
                 </p>
               </div>
-
-              <div className="mt-6 p-4 bg-secondary rounded-xl">
-                <p className="text-xs text-muted-foreground text-center">
-                  <strong>Admin access:</strong> admin@atelier.com / admin123
-                </p>
-              </div>
             </div>
           </motion.div>
         </div>

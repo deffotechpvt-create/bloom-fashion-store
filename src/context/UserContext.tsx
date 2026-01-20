@@ -40,9 +40,8 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 // ----------------------
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-
   const api = useApi();
-  const { user } = useAuth(); // session user
+  const { user, updateUserProfile } = useAuth(); // ✅ Get updateUserProfile helper
 
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
@@ -60,27 +59,31 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         Backend should return updated user:
         {
           success: true,
-          user: { id, name, email, role }
+          user: { _id, name, email, phone, role, address }
         }
       */
 
       if (res.data?.user) {
-        // Sync auth identity
-        // This avoids reload to update navbar name/email
-        // Using AuthContext setter pattern (recommended)
+        // ✅ Method 1: Dispatch custom event (for backward compatibility)
         window.dispatchEvent(
           new CustomEvent("auth:user:update", {
             detail: res.data.user
           })
         );
+
+        // ✅ Method 2: Direct update via AuthContext helper (immediate sync)
+        updateUserProfile({
+          name: res.data.user.name,
+          email: res.data.user.email,
+          phone: res.data.user.phone,
+          address: res.data.user.address
+        });
       }
 
       return true;
-
     } catch (err) {
       console.error("Profile update failed", err);
       return false;
-
     } finally {
       setIsUpdating(false);
     }
@@ -99,11 +102,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       await api.put("/users/change-password", data);
 
       return true;
-
     } catch (err) {
       console.error("Password change failed", err);
       return false;
-
     } finally {
       setIsUpdating(false);
     }
@@ -127,7 +128,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 // ----------------------
 
 export const useUser = (): UserContextType => {
-
   const context = useContext(UserContext);
 
   if (!context) {

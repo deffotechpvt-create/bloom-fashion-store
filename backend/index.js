@@ -16,6 +16,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import imageRoutes from './routes/imageRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -80,6 +81,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/wishlist', wishlistRoutes); 
 
 // Health Check
 app.get('/health', (req, res) => {

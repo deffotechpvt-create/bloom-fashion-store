@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import Order from '../models/Order.js';
+import Product from '../models/Product.js';
 import razorpayInstance from '../config/razorpay.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { sendOrderConfirmation } from '../utils/sendOrderEmail.js';
 
 // @desc    Create Razorpay order
 // @route   POST /api/payment/create-order
@@ -25,7 +27,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
     // Create Razorpay order
     const options = {
-        amount: order.totalAmount * 100, // Amount in paise
+        amount: Math.round(order.totalAmount * 100), // Amount in paise, rounded to avoid float issues
         currency: 'INR',
         receipt: `order_${order._id}`,
         payment_capture: 1
@@ -82,6 +84,18 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     order.paymentId = razorpayPaymentId;
     order.razorpaySignature = razorpaySignature;
     await order.save();
+
+    // Reduce stock
+    for (const item of order.products) {
+        const product = await Product.findById(item.product);
+        if (product) {
+            product.stock -= item.quantity;
+            await product.save();
+        }
+    }
+
+    // Send confirmation email
+    await sendOrderConfirmation(order, req.user);
 
     res.status(200).json({
         success: true,

@@ -15,9 +15,12 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
+import OrderDetailsPage from "./pages/OrderDetailsPage";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { UserProvider } from "./context/UserContext";
+import { OrderProvider } from "./context/OrderContext";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const queryClient = new QueryClient();
 
@@ -26,29 +29,33 @@ const App = () => (
     <ThemeProvider>
       <AuthProvider>
         <UserProvider>
-          <WishlistProvider>
-            <ProductsProvider>
+          <ProductsProvider>
+            <WishlistProvider>
               <CartProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </CartProvider>
-            </ProductsProvider>
-          </WishlistProvider>
+                <OrderProvider>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <BrowserRouter>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/product/:id" element={<ProductDetail />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
+                        <Route path="/checkout" element={<CheckoutPage />} />
+                        <Route path="/admin" element={<Admin />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </BrowserRouter>
+                  </TooltipProvider>
+                </OrderProvider>
+              </CartProvider>
+            </WishlistProvider>
+          </ProductsProvider>
         </UserProvider>
       </AuthProvider>
     </ThemeProvider>

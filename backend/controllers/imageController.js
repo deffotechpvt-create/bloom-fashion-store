@@ -60,10 +60,17 @@ export const getImage = asyncHandler(async (req, res) => {
         return res.status(404).json({ success: false, message: 'Image not found' });
     }
 
-    res.set('Content-Type', image.contentType);
-    res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.send(image.data);
+    const buffer = image.data;
+
+    res.set({
+        "Content-Type": image.contentType,
+        "Content-Length": buffer.length,
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "ETag": `"${filename}-${buffer.length}"`
+    });
+
+    return res.end(buffer);
 });
 
 export default { uploadImage, getImage };

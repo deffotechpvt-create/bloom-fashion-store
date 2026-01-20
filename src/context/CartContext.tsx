@@ -80,6 +80,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // ------------------
   // Merge guest cart on login
   // ------------------
+  const updateLocalCart = (updater: (prev: CartItem[]) => CartItem[]) => {
+    setItems(prev => {
+      const next = updater(prev);
+      if (!auth) saveGuestCart(next);
+      return next;
+    });
+  };
 
   const mergeGuestCart = async () => {
     try {
@@ -163,142 +170,156 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // ------------------
   // Add Item
   // ------------------
+const addItem = async (item: any, size?: string, color?: string, quantity?: number) => {
 
-  const addItem = async (item: any, size?: string, color?: string, quantity?: number) => {
-    // Accept several signatures for backward compatibility:
-    // - addItem(cartItem)
-    // - addItem(product, size, color, quantity?)
-    // - addItem(productId, size, color, quantity?)
+  const payload: CartItem = {
+    productId: item.id || item.productId || item,
+    quantity: quantity || 1,
+    size: size || '',
+    color: color || '',
+    price: item.price,
+    name: item.name,
+    image: item.image || item.images?.[0]
+  };
 
-    let payload: CartItem;
+  if (!payload.productId) return;
 
-    if (item && typeof item === 'object' && 'productId' in item) {
-      payload = item;
-    } else if (item && typeof item === 'object' && 'id' in item) {
-      // product object
-      payload = {
-        productId: item.id,
-        quantity: quantity || 1,
-        size: size || item.size || '',
-        color: color || item.color || item.colors?.[0] || '',
-        price: item.price,
-        name: item.name,
-        image: item.image || (item.images && item.images[0])
-      };
-    } else if (typeof item === 'string') {
-      payload = {
-        productId: item,
-        quantity: quantity || 1,
-        size: size || '',
-        color: color || ''
-      };
-    } else {
-      // fallback: try to coerce
-      payload = { productId: item?.productId || '', quantity: item?.quantity || 1, size: item?.size || '', color: item?.color || '' };
+  const snapshot = [...items];
+
+  // OPTIMISTIC UPDATE
+  updateLocalCart(prev => {
+    const exist = prev.find(
+      i =>
+        i.productId === payload.productId &&
+        i.size === payload.size &&
+        i.color === payload.color
+    );
+
+    if (exist) {
+      return prev.map(i =>
+        i === exist
+          ? { ...i, quantity: i.quantity + payload.quantity }
+          : i
+      );
     }
 
-    if (!payload.productId) return;
+    return [...prev, payload];
+  });
 
-    if (!auth) {
-      setItems(prev => {
-        const updated = [...prev, payload];
-        saveGuestCart(updated);
-        return updated;
-      });
-      setIsOpen(true);
-      return;
-    }
+  setIsOpen(true);
 
+  // BACKGROUND SYNC
+  if (!auth) return;
+
+  try {
     await api.post("/cart/add", {
       productId: payload.productId,
       quantity: payload.quantity,
       size: payload.size,
       color: payload.color
     });
-    await fetchCart();
-    setIsOpen(true);
-  };
+  } catch (err) {
+    // ROLLBACK
+    console.error("Add failed — rollback");
+    setItems(snapshot);
+  }
+};
+
 
   // ------------------
   // Remove Item
   // ------------------
 
-  const removeItem = async (productId: string, size: string, color: string) => {
+ const removeItem = async (productId: string, size: string, color: string) => {
 
-    if (!auth) {
-      setItems(prev => {
-        const updated = prev.filter(
-          i =>
-            !(
-              i.productId === productId &&
-              i.size === size &&
-              i.color === color
-            )
-        );
-        saveGuestCart(updated);
-        return updated;
-      });
-      return;
-    }
+  const snapshot = [...items];
 
-    await api.delete(`/cart/remove/${productId}`, {
+  updateLocalCart(prev =>
+    prev.filter(
+      i =>
+        !(
+          i.productId === productId &&
+          i.size === size &&
+          i.color === color
+        )
+    )
+  );
+
+  if (!auth) return;
+
+  try {
+    await api.del(`/cart/remove/${productId}`, {
       data: { size, color }
     });
+  } catch {
+    console.error("Remove failed — rollback");
+    setItems(snapshot);
+  }
+};
 
-    await fetchCart();
-  };
 
   // ------------------
   // Update Quantity
   // ------------------
 
-  const updateQuantity = async (
-    productId: string,
-    size: string,
-    color: string,
-    quantity: number
-  ) => {
+ const updateQuantity = async (
+  productId: string,
+  size: string,
+  color: string,
+  quantity: number
+) => {
 
-    if (!auth) {
-      setItems(prev => {
-        const updated = prev.map(item =>
-          item.productId === productId &&
-            item.size === size &&
-            item.color === color
-            ? { ...item, quantity }
-            : item
-        );
-        saveGuestCart(updated);
-        return updated;
-      });
-      return;
-    }
+  const snapshot = [...items];
 
+  updateLocalCart(prev =>
+    prev.map(item =>
+      item.productId === productId &&
+      item.size === size &&
+      item.color === color
+        ? { ...item, quantity }
+        : item
+    )
+  );
+
+  if (!auth) return;
+
+  try {
     await api.put("/cart/update", {
       productId,
       size,
       color,
       quantity
     });
+  } catch {
+    console.error("Quantity update failed — rollback");
+    setItems(snapshot);
+  }
+};
 
-    await fetchCart();
-  };
 
   // ------------------
   // Clear Cart
   // ------------------
 
-  const clearCart = async () => {
+const clearCart = async () => {
 
-    if (!auth) {
-      localStorage.removeItem("guest_cart");
-      setItems([]);
-      return;
-    }
+  const snapshot = [...items];
 
-    await api.delete("/cart/clear");
-    setItems([]);
-  };
+  setItems([]);
+
+  if (!auth) {
+    localStorage.removeItem("guest_cart");
+    return;
+  }
+
+  try {
+    await api.del("/cart/clear");
+  } catch {
+    console.error("Clear failed — rollback");
+    setItems(snapshot);
+  }
+};
+
 
   // ------------------
   // UI Controls

@@ -664,6 +664,182 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "Wishlist",
+            "item": [
+                {
+                    "name": "Get Wishlist",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add to Wishlist",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"productId\": \"{{PRODUCT_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/add",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "add"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Remove from Wishlist",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/remove/{{PRODUCT_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "remove",
+                                "{{PRODUCT_ID}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Clear Wishlist",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/clear",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "clear"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Move to Cart",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"productId\": \"{{PRODUCT_ID}}\",\n  \"quantity\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/move-to-cart",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "move-to-cart"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Move All to Cart",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/move-all-to-cart",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "move-all-to-cart"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Check if in Wishlist",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{TOKEN}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/wishlist/check/{{PRODUCT_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "check",
+                                "{{PRODUCT_ID}}"
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     ]
 }

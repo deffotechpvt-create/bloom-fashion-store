@@ -3,6 +3,7 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { validationResult } from 'express-validator';
+import { sendOrderConfirmation } from '../utils/sendOrderEmail.js';
 
 // @desc    Checkout and create order
 // @route   POST /api/orders/checkout
@@ -22,33 +23,49 @@ export const checkout = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
-    // Verify stock availability
+    // Verify stock availability and collect items with real-time prices
+    const orderItems = [];
+    let subtotal = 0;
+
     for (const item of cart.items) {
         const product = await Product.findById(item.product._id);
+
+        if (!product || !product.isActive) {
+            return res.status(404).json({
+                success: false,
+                message: `Product ${item.product.name} is no longer available`
+            });
+        }
+
         if (product.stock < item.quantity) {
             return res.status(400).json({
                 success: false,
                 message: `Insufficient stock for ${product.name}`
             });
         }
+
+        // Use real-time price from the database, NOT the cart snapshot
+        const currentPrice = product.price;
+        subtotal += currentPrice * item.quantity;
+
+        orderItems.push({
+            product: product._id,
+            name: product.name,
+            quantity: item.quantity,
+            price: currentPrice
+        });
     }
 
-    // Create order
-    const orderItems = cart.items.map(item => ({
-        product: item.product._id,
-        name: item.product.name,
-        quantity: item.quantity,
-        price: item.price
-    }));
+    const totalWithGST = Math.round(subtotal * 1.18);
 
+    // Create order with SECURELY calculated total
     const order = await Order.create({
         user: req.user._id,
         products: orderItems,
         shippingAddress,
-        totalAmount: cart.totalAmount
+        totalAmount: totalWithGST
     });
-    // Send order confirmation email
-    await sendOrderConfirmation(order, req.user);
+
     // Clear cart
     cart.items = [];
     await cart.save();
@@ -119,17 +136,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     if (!order) {
         return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    // If order is being completed, reduce stock
-    if (status === 'delivered' && order.orderStatus !== 'delivered') {
-        for (const item of order.products) {
-            const product = await Product.findById(item.product);
-            if (product) {
-                product.stock -= item.quantity;
-                await product.save();
-            }
-        }
     }
 
     order.orderStatus = status;

@@ -12,12 +12,15 @@ import { useAuth } from "./AuthContext";
 // ------------------
 
 interface WishlistContextType {
-  wishlist: string[];
+  wishlist: string[]; // Array of product IDs only
+  count: number;
   isLoading: boolean;
   addToWishlist: (productId: string) => Promise<void>;
   removeFromWishlist: (productId: string) => Promise<void>;
   toggleWishlist: (productId: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
+  fetchWishlist: () => Promise<void>;
+  clearWishlist: () => Promise<void>;
 }
 
 // ------------------
@@ -33,11 +36,11 @@ const WISHLIST_KEY = "atelier_wishlist";
 // ------------------
 
 export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
-
   const api = useApi();
   const { auth, isLoading: authLoading } = useAuth();
 
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   // ------------------
@@ -45,7 +48,6 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   useEffect(() => {
-
     if (authLoading) return;
 
     if (auth) {
@@ -53,7 +55,6 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
     } else {
       loadGuestWishlist();
     }
-
   }, [auth, authLoading]);
 
   // ------------------
@@ -62,7 +63,9 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
 
   const loadGuestWishlist = () => {
     const local = localStorage.getItem(WISHLIST_KEY);
-    setWishlist(local ? JSON.parse(local) : []);
+    const parsed = local ? JSON.parse(local) : [];
+    setWishlist(parsed);
+    setCount(parsed.length);
   };
 
   const saveGuestWishlist = (items: string[]) => {
@@ -70,16 +73,22 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   // ------------------
-  // Backend Fetch
+  // Backend Fetch (IDs only)
   // ------------------
 
   const fetchWishlist = async () => {
     try {
       setIsLoading(true);
       const res = await api.get("/wishlist");
-      setWishlist(res.data.items || []);
-    } catch {
+      // ✅ Get product IDs from response
+      const productIds = res.data.productIds || res.data.data || [];
+      
+      setWishlist(productIds);
+      setCount(productIds.length);
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
       setWishlist([]);
+      setCount(0);
     } finally {
       setIsLoading(false);
     }
@@ -90,22 +99,38 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   const addToWishlist = async (productId: string) => {
-
+    // Guest user
     if (!auth) {
-
       setWishlist(prev => {
         if (prev.includes(productId)) return prev;
 
         const updated = [...prev, productId];
         saveGuestWishlist(updated);
+        setCount(updated.length);
         return updated;
       });
 
       return;
     }
 
-    await api.post("/wishlist/add", { productId });
-    await fetchWishlist();
+    // Authenticated user - Optimistic update
+    try {
+      // ✅ Update UI immediately
+      setWishlist(prev => {
+        if (prev.includes(productId)) return prev;
+        const updated = [...prev, productId];
+        setCount(updated.length);
+        return updated;
+      });
+
+      // Then sync with backend
+      await api.post("/wishlist/add", { productId });
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      // ✅ Revert on error
+      await fetchWishlist();
+      throw error;
+    }
   };
 
   // ------------------
@@ -113,20 +138,58 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   const removeFromWishlist = async (productId: string) => {
-
+    // Guest user
     if (!auth) {
-
       setWishlist(prev => {
         const updated = prev.filter(id => id !== productId);
         saveGuestWishlist(updated);
+        setCount(updated.length);
         return updated;
       });
 
       return;
     }
 
-    await api.delete(`/wishlist/remove/${productId}`);
-    await fetchWishlist();
+    // Authenticated user - Optimistic update
+    try {
+      // ✅ Update UI immediately
+      setWishlist(prev => {
+        const updated = prev.filter(id => id !== productId);
+        setCount(updated.length);
+        return updated;
+      });
+
+      // Then sync with backend
+      await api.del(`/wishlist/remove/${productId}`);
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      // ✅ Revert on error
+      await fetchWishlist();
+      throw error;
+    }
+  };
+
+    const clearWishlist = async () => {
+    // Guest user
+    if (!auth) {
+      localStorage.removeItem(WISHLIST_KEY);
+      setWishlist([]);
+      setCount(0);
+      return;
+    }
+
+    // Authenticated user
+    try {
+      setIsLoading(true);
+      await api.del("/wishlist/clear");
+      setWishlist([]);
+      setCount(0);
+    } catch (error) {
+      console.error("Error clearing wishlist:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ------------------
@@ -134,7 +197,6 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   const toggleWishlist = async (productId: string) => {
-
     if (wishlist.includes(productId)) {
       await removeFromWishlist(productId);
     } else {
@@ -154,11 +216,14 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
     <WishlistContext.Provider
       value={{
         wishlist,
+        count,
         isLoading,
         addToWishlist,
         removeFromWishlist,
+        clearWishlist,
         toggleWishlist,
-        isInWishlist
+        isInWishlist,
+        fetchWishlist
       }}
     >
       {children}
@@ -171,7 +236,6 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
 // ------------------
 
 export const useWishlist = () => {
-
   const ctx = useContext(WishlistContext);
 
   if (!ctx) {
