@@ -25,8 +25,8 @@ interface ChangePasswordPayload {
 
 interface UserContextType {
   isUpdating: boolean;
-  updateProfile: (data: UpdateProfilePayload) => Promise<boolean>;
-  changePassword: (data: ChangePasswordPayload) => Promise<boolean>;
+  updateProfile: (data: UpdateProfilePayload) => Promise<any>;
+  changePassword: (data: ChangePasswordPayload) => Promise<any>;
 }
 
 // ----------------------
@@ -49,7 +49,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Update Profile
   // ----------------------
 
-  const updateProfile = async (data: UpdateProfilePayload): Promise<boolean> => {
+  const updateProfile = async (data: UpdateProfilePayload): Promise<any> => {
     try {
       setIsUpdating(true);
 
@@ -59,6 +59,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         Backend should return updated user:
         {
           success: true,
+          message: "Profile updated successfully",
           user: { _id, name, email, phone, role, address }
         }
       */
@@ -80,10 +81,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         });
       }
 
-      return true;
+      return res;
     } catch (err) {
       console.error("Profile update failed", err);
-      return false;
+      throw err;
     } finally {
       setIsUpdating(false);
     }
@@ -95,16 +96,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const changePassword = async (
     data: ChangePasswordPayload
-  ): Promise<boolean> => {
+  ): Promise<any> => {
     try {
       setIsUpdating(true);
 
-      await api.put("/users/change-password", data);
+      const res = await api.put("/users/change-password", data);
 
-      return true;
+      return res;
     } catch (err) {
       console.error("Password change failed", err);
-      return false;
+      throw err;
     } finally {
       setIsUpdating(false);
     }

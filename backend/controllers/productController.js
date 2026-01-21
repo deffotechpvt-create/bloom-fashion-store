@@ -7,7 +7,7 @@ import { validationResult } from 'express-validator';
 // @route   GET /api/products
 // @access  Public
 export const getProducts = asyncHandler(async (req, res) => {
-    const { category, search, page = 1, limit = 10 } = req.query;
+    const { category, search, minPrice, maxPrice, colors, sizes, page = 1, limit = 10 } = req.query;
 
     const query = { isActive: true };
 
@@ -17,6 +17,25 @@ export const getProducts = asyncHandler(async (req, res) => {
 
     if (search) {
         query.$text = { $search: search };
+    }
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+        query.price = {};
+        if (minPrice) query.price.$gte = Number(minPrice);
+        if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Colors filter (matches any in array)
+    if (colors) {
+        const colorArray = Array.isArray(colors) ? colors : colors.split(',');
+        query.colors = { $in: colorArray };
+    }
+
+    // Sizes filter (matches any in array)
+    if (sizes) {
+        const sizeArray = Array.isArray(sizes) ? sizes : sizes.split(',');
+        query.sizes = { $in: sizeArray };
     }
 
     const skip = (page - 1) * limit;
@@ -59,12 +78,7 @@ export const getProduct = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/Admin
 export const createProduct = asyncHandler(async (req, res) => {
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //     return res.status(400).json({ success: false, errors: errors.array() });
-    // }
-
-    const { name, description, price, category, stock } = req.body;
+    const { name, description, price, category, stock, sizes, colors, isNew, isActive } = req.body;
     let { image, images } = req.body;
 
     // Handle single image file (Save to MongoDB)
@@ -108,11 +122,15 @@ export const createProduct = asyncHandler(async (req, res) => {
     const product = await Product.create({
         name,
         description,
-        price,
+        price: Number(price),
         category,
         image,
         images: imagesArray,
-        stock,
+        stock: Number(stock),
+        sizes: Array.isArray(sizes) ? sizes : (sizes ? [sizes] : []),
+        colors: Array.isArray(colors) ? colors : (colors ? [colors] : []),
+        isActive: isActive === 'true' || isActive === true,
+        isNew: isNew === 'true' || isNew === true,
         createdBy: req.user._id
     });
 
@@ -139,6 +157,20 @@ export const updateProduct = asyncHandler(async (req, res) => {
     }
 
     const updateData = { ...req.body };
+
+    // Sanitize numeric and boolean fields from FormData
+    if (updateData.price) updateData.price = Number(updateData.price);
+    if (updateData.stock) updateData.stock = Number(updateData.stock);
+    if (updateData.isActive !== undefined) updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
+    if (updateData.isNew !== undefined) updateData.isNew = updateData.isNew === 'true' || updateData.isNew === true;
+
+    // Handle sizes and colors arrays
+    if (updateData.sizes) {
+        updateData.sizes = Array.isArray(updateData.sizes) ? updateData.sizes : [updateData.sizes];
+    }
+    if (updateData.colors) {
+        updateData.colors = Array.isArray(updateData.colors) ? updateData.colors : [updateData.colors];
+    }
 
     // Handle single image file (Save to MongoDB)
     if (req.files && req.files.image) {
@@ -196,10 +228,7 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     if (!product) {
         return res.status(404).json({ success: false, message: 'Product not found' });
     }
-
-    // Soft delete
-    product.isActive = false;
-    await product.save();
+    await Product.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
         success: true,

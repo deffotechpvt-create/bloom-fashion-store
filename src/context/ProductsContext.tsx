@@ -5,11 +5,19 @@ import type { Product } from '@/types/Product';
 interface ProductsContextType {
   products: Product[];
   isLoading: boolean;
-  loadProducts: (params?: Record<string, any>) => Promise<void>;
+  isAppending: boolean;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+    limit: number;
+    hasMore: boolean;
+  };
+  loadProducts: (params?: Record<string, any>, append?: boolean) => Promise<void>;
   getProductById: (id: string) => Promise<Product | null>;
-  createProduct: (formData: FormData) => Promise<Product | null>;
-  updateProduct: (id: string, formData: FormData) => Promise<Product | null>;
-  deleteProduct: (id: string) => Promise<boolean>;
+  createProduct: (formData: FormData) => Promise<any>;
+  updateProduct: (id: string, formData: FormData) => Promise<any>;
+  deleteProduct: (id: string) => Promise<any>;
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
@@ -18,6 +26,14 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
   const api = useApi();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAppending, setIsAppending] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 10,
+    hasMore: true
+  });
 
   const mapServerProduct = (p: any): Product => {
     const apiBase = getBaseURL();
@@ -47,51 +63,67 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
     };
   };
 
-  const loadProducts = async (params?: Record<string, any>) => {
+  const loadProducts = async (params?: Record<string, any>, append = false) => {
     try {
-      setIsLoading(true);
+      if (append) setIsAppending(true);
+      else setIsLoading(true);
       const res = await api.get('/products', { params });
-      const fetched = res?.data?.data || [];
-      setProducts(fetched.map((p: any) => mapServerProduct(p)));
+      const { data: fetched = [], total = 0, page = 1, pages = 1 } = res?.data || {};
+
+      const mapped = fetched.map((p: any) => mapServerProduct(p));
+      if (append) {
+        setProducts(prev => [...prev, ...mapped]);
+      } else {
+        setProducts(mapped);
+      }
+
+      setPagination({
+        currentPage: Number(page),
+        totalPages: Number(pages),
+        total: Number(total),
+        limit: params?.limit || 10,
+        hasMore: Number(page) < Number(pages)
+      });
     } catch (err) {
-      setProducts([]);
+      if (!append) setProducts([]);
     } finally {
       setIsLoading(false);
+      setIsAppending(false);
     }
   };
 
   const createProduct = async (formData: FormData) => {
     try {
-      const res = await api.post('/products', formData);
+      const res = await api.post('/admin/products', formData);
       const newProd = mapServerProduct(res.data.data);
       setProducts(prev => [newProd, ...prev]);
-      return newProd;
+      return res;
     } catch (err) {
       console.error('Create product error:', err);
-      return null;
+      throw err;
     }
   };
 
   const updateProduct = async (id: string, formData: FormData) => {
     try {
-      const res = await api.put(`/products/${id}`, formData);
+      const res = await api.put(`/admin/products/${id}`, formData);
       const updatedProd = mapServerProduct(res.data.data);
       setProducts(prev => prev.map(p => p.id === id || p._id === id ? updatedProd : p));
-      return updatedProd;
+      return res;
     } catch (err) {
       console.error('Update product error:', err);
-      return null;
+      throw err;
     }
   };
 
   const deleteProduct = async (id: string) => {
     try {
-      await api.del(`/products/${id}`);
+      const res = await api.del(`/admin/products/${id}`);
       setProducts(prev => prev.filter(p => p.id !== id && p._id !== id));
-      return true;
+      return res;
     } catch (err) {
       console.error('Delete product error:', err);
-      return false;
+      throw err;
     }
   };
 
@@ -118,12 +150,22 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     // load initial product list (reasonable limit)
-    loadProducts({ limit: 100 });
+    loadProducts({ limit: 10, page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <ProductsContext.Provider value={{ products, isLoading, loadProducts, getProductById, createProduct, updateProduct, deleteProduct }}>
+    <ProductsContext.Provider value={{
+      products,
+      isLoading,
+      isAppending,
+      pagination,
+      loadProducts,
+      getProductById,
+      createProduct,
+      updateProduct,
+      deleteProduct
+    }}>
       {children}
     </ProductsContext.Provider>
   );

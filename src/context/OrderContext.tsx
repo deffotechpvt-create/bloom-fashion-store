@@ -7,10 +7,10 @@ import React, {
 } from "react";
 import { useApi, getBaseURL } from "../lib/api";
 import { useAuth } from "./AuthContext";
-import type { 
-  Order, 
-  FrontendOrder, 
-  ShippingAddress 
+import type {
+  Order,
+  FrontendOrder,
+  ShippingAddress
 } from "@/types/Order";
 
 // ------------------
@@ -42,19 +42,19 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 const normalizeImageUrl = (url: string | undefined | null): string | null => {
   if (!url) return null;
-  
+
   try {
     const apiBase = getBaseURL();
     const origin = apiBase.replace(/\/api\/?$/, '');
-    
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    
+
     if (url.startsWith('/')) {
       return `${origin}${url}`;
     }
-    
+
     return `${origin}/${url}`;
   } catch (error) {
     console.error('Error normalizing image URL:', error);
@@ -74,21 +74,21 @@ const transformOrder = (order: Order): FrontendOrder => {
     total: order.totalAmount,
     items: order.products.map(item => {
       const isPopulated = typeof item.product === 'object' && item.product !== null;
-      
+
       const productId = isPopulated
         ? (item.product as any)._id || (item.product as any).id
         : item.product;
-      
+
       const productName = isPopulated
         ? (item.product as any).name
         : item.name;
-      
+
       let productImage: string | null = null;
       if (isPopulated) {
         const prod = item.product as any;
         productImage = normalizeImageUrl(prod.image || prod.images?.[0]);
       }
-      
+
       return {
         product: productId,
         name: productName || item.name || 'Unknown Product',
@@ -126,21 +126,24 @@ const loadRazorpay = (): Promise<boolean> => {
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const api = useApi();
-  const { auth, user, isLoading: authLoading } = useAuth();
+  const { auth, user, isAdmin, isLoading: authLoading } = useAuth();
 
   const [orders, setOrders] = useState<FrontendOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || isAdmin) {
+      if (isAdmin) setOrders([]);
+      return;
+    }
 
     if (auth) {
       fetchOrders();
     } else {
       setOrders([]);
     }
-  }, [auth, authLoading]);
+  }, [auth, authLoading, isAdmin]);
 
   // ------------------
   // Fetch Orders
@@ -155,7 +158,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       const res = await api.get("/orders/my-orders");
-      
+
       const ordersList: Order[] = res.data.data || [];
       const mappedOrders = ordersList.map(transformOrder);
 
@@ -177,6 +180,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     onSuccess?: () => void,
     onError?: (error: string) => void
   ): Promise<void> => {
+    if (isAdmin) {
+      const errorMsg = "Admins cannot place orders";
+      onError?.(errorMsg);
+      return;
+    }
     if (!auth) {
       const errorMsg = "Please login to checkout";
       onError?.(errorMsg);
@@ -196,7 +204,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
       // Step 1: Create Order
       const orderRes = await api.post("/orders/checkout", { shippingAddress });
-      
+
       if (!orderRes.data.success || !orderRes.data.data) {
         const errorMsg = "Failed to create order";
         onError?.(errorMsg);
@@ -205,13 +213,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
       const backendOrder: Order = orderRes.data.data;
       const newOrder = transformOrder(backendOrder);
-      
+
       // Add to orders list
       setOrders(prev => [newOrder, ...prev]);
 
       // Step 2: Create Razorpay Payment Order
-      const paymentRes = await api.post('/payment/create-order', { 
-        orderId: newOrder.id 
+      const paymentRes = await api.post('/payment/create-order', {
+        orderId: newOrder.id
       });
 
       if (!paymentRes.data.success || !paymentRes.data.data) {
@@ -254,7 +262,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             onError?.("Payment cancelled. You can complete payment later from your orders.");
           }
         },
@@ -347,7 +355,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             onError?.("Payment cancelled. You can try again anytime.");
           }
         },

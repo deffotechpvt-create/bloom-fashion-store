@@ -28,11 +28,11 @@ const Profile = () => {
   const { addItem } = useCart();
   const { orders, isLoading: ordersLoading } = useOrders();
   const navigate = useNavigate();
-  
+
   // ✅ Get tab from URL query parameter
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') || 'profile';
-  
+
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   // Profile form state
@@ -121,17 +121,14 @@ const Profile = () => {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const success = await updateProfile(profileData);
-
-    if (success) {
+    try {
+      const res = await updateProfile(profileData);
       toast({
-        title: 'Profile updated',
-        description: 'Your profile has been successfully updated.',
+        title: res.data.message || 'Profile updated successfully',
       });
-    } else {
+    } catch (error: any) {
       toast({
-        title: 'Update failed',
-        description: 'Failed to update profile. Please try again.',
+        title: error.response?.data?.message || 'Failed to update profile',
         variant: 'destructive',
       });
     }
@@ -212,30 +209,27 @@ const Profile = () => {
                       <button
                         key={tab.id}
                         onClick={() => handleTabChange(tab.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                          activeTab === tab.id
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === tab.id
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                        }`}
+                          }`}
                       >
                         <tab.icon className="w-5 h-5" />
                         {tab.label}
                         {/* ✅ Show count badges */}
                         {tab.id === 'wishlist' && count > 0 && (
-                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                            activeTab === tab.id 
-                              ? 'bg-primary-foreground/20 text-primary-foreground' 
+                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${activeTab === tab.id
+                              ? 'bg-primary-foreground/20 text-primary-foreground'
                               : 'bg-primary/20 text-primary'
-                          }`}>
+                            }`}>
                             {count}
                           </span>
                         )}
                         {tab.id === 'orders' && orders.length > 0 && (
-                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                            activeTab === tab.id 
-                              ? 'bg-primary-foreground/20 text-primary-foreground' 
+                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${activeTab === tab.id
+                              ? 'bg-primary-foreground/20 text-primary-foreground'
                               : 'bg-primary/20 text-primary'
-                          }`}>
+                            }`}>
                             {orders.length}
                           </span>
                         )}
@@ -427,13 +421,12 @@ const Profile = () => {
                                   </p>
                                 </div>
 
-                                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                                  order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
-                                  order.status === 'shipped' ? 'bg-blue-500/20 text-blue-500' :
-                                  order.status === 'processing' ? 'bg-yellow-500/20 text-yellow-500' :
-                                  order.status === 'cancelled' ? 'bg-red-500/20 text-red-500' :
-                                  'bg-muted text-muted-foreground'
-                                }`}>
+                                <span className={`px-3 py-1 text-xs font-medium rounded-full ${order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
+                                    order.status === 'shipped' ? 'bg-blue-500/20 text-blue-500' :
+                                      order.status === 'processing' ? 'bg-yellow-500/20 text-yellow-500' :
+                                        order.status === 'cancelled' ? 'bg-red-500/20 text-red-500' :
+                                          'bg-muted text-muted-foreground'
+                                  }`}>
                                   {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                 </span>
                               </div>

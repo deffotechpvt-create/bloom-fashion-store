@@ -21,45 +21,49 @@ import NotFound from "./pages/NotFound";
 import { UserProvider } from "./context/UserContext";
 import { OrderProvider } from "./context/OrderContext";
 import CheckoutPage from "./pages/CheckoutPage";
+import { AdminProvider } from "./context/AdminContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <UserProvider>
-          <ProductsProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <OrderProvider>
-                  <TooltipProvider>
-                    <Toaster />
-                    <Sonner />
-                    <BrowserRouter>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/product/:id" element={<ProductDetail />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/signup" element={<Signup />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/orders" element={<Orders />} />
-                        <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
-                        <Route path="/checkout" element={<CheckoutPage />} />
-                        <Route path="/admin" element={<Admin />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </BrowserRouter>
-                  </TooltipProvider>
-                </OrderProvider>
-              </CartProvider>
-            </WishlistProvider>
-          </ProductsProvider>
-        </UserProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <UserProvider>
+            <ProductsProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <OrderProvider>
+                    <AdminProvider>
+                      <TooltipProvider>
+                        <Toaster />
+                        <Sonner />
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/products" element={<Products />} />
+                          <Route path="/product/:id" element={<ProductDetail />} />
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/signup" element={<Signup />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/orders" element={<Orders />} />
+                          <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
+                          <Route path="/checkout" element={<CheckoutPage />} />
+
+                          <Route path="/admin" element={<Admin />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </TooltipProvider>
+                    </AdminProvider>
+                  </OrderProvider>
+                </CartProvider>
+              </WishlistProvider>
+            </ProductsProvider>
+          </UserProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  </QueryClientProvider >
 );
 
 export default App;

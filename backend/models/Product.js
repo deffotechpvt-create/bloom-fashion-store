@@ -39,17 +39,30 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isNew: {
+        type: Boolean,
+        default: false
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    totalSold: {
+        type: Number,
+        default: 0
+    },
+
+    totalRevenue: {
+        type: Number,
+        default: 0
     }
-}, {
-    timestamps: true
 });
 
 // Index for search optimization
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ totalSold: -1 });
+productSchema.index({ totalRevenue: -1 });
 
 export default mongoose.model('Product', productSchema);

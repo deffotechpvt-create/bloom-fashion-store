@@ -55,7 +55,9 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
+orderSchema.index({ "products.product": 1 });
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, paymentStatus: 1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 
 export default mongoose.model('Order', orderSchema);

@@ -7,9 +7,7 @@ import {
     forgotPassword,
     resetPassword,
     logout,
-    setupAdmin,
-    requestPromotion,
-    verifyPromotion
+    setupAdmin
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import {
@@ -29,7 +27,5 @@ router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.post('/logout', protect, logout);
 router.post('/setup-admin', setupAdmin);
-router.post('/request-promotion', protect, authorize('admin'), requestPromotion);
-router.post('/verify-promotion', protect, authorize('admin'), verifyPromotion);
 
 export default router;

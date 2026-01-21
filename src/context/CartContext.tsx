@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import { useApi, getBaseURL } from "../lib/api";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // ------------------
 // Types
@@ -54,7 +56,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const api = useApi();
-  const { auth, isLoading: authLoading } = useAuth();
+  const { auth, isAdmin, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +70,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
 
-    if (authLoading) return;
+    if (authLoading || isAdmin) {
+      if (isAdmin) setItems([]); // Admin should always have an empty cart
+      return;
+    }
 
     if (auth) {
       // merge any guest cart stored locally into the user's server cart, then fetch
@@ -75,7 +82,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       loadGuestCart();
     }
 
-  }, [auth, authLoading]);
+  }, [auth, authLoading, isAdmin]);
 
   // ------------------
   // Merge guest cart on login
@@ -170,155 +177,164 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // ------------------
   // Add Item
   // ------------------
-const addItem = async (item: any, size?: string, color?: string, quantity?: number) => {
+  const addItem = async (item: any, size?: string, color?: string, quantity?: number) => {
 
-  const payload: CartItem = {
-    productId: item.id || item.productId || item,
-    quantity: quantity || 1,
-    size: size || '',
-    color: color || '',
-    price: item.price,
-    name: item.name,
-    image: item.image || item.images?.[0]
-  };
+    const payload: CartItem = {
+      productId: item.id || item.productId || item,
+      quantity: quantity || 1,
+      size: size || '',
+      color: color || '',
+      price: item.price,
+      name: item.name,
+      image: item.image || item.images?.[0]
+    };
 
-  if (!payload.productId) return;
-
-  const snapshot = [...items];
-
-  // OPTIMISTIC UPDATE
-  updateLocalCart(prev => {
-    const exist = prev.find(
-      i =>
-        i.productId === payload.productId &&
-        i.size === payload.size &&
-        i.color === payload.color
-    );
-
-    if (exist) {
-      return prev.map(i =>
-        i === exist
-          ? { ...i, quantity: i.quantity + payload.quantity }
-          : i
-      );
+    if (isAdmin) {
+      toast({
+        title: "Admin restriction",
+        description: "Admins cannot shop. Redirecting to dashboard...",
+        variant: "destructive",
+      });
+      navigate("/admin");
+      return;
     }
+    if (!payload.productId) return;
 
-    return [...prev, payload];
-  });
+    const snapshot = [...items];
 
-  setIsOpen(true);
+    // OPTIMISTIC UPDATE
+    updateLocalCart(prev => {
+      const exist = prev.find(
+        i =>
+          i.productId === payload.productId &&
+          i.size === payload.size &&
+          i.color === payload.color
+      );
 
-  // BACKGROUND SYNC
-  if (!auth) return;
+      if (exist) {
+        return prev.map(i =>
+          i === exist
+            ? { ...i, quantity: i.quantity + payload.quantity }
+            : i
+        );
+      }
 
-  try {
-    await api.post("/cart/add", {
-      productId: payload.productId,
-      quantity: payload.quantity,
-      size: payload.size,
-      color: payload.color
+      return [...prev, payload];
     });
-  } catch (err) {
-    // ROLLBACK
-    console.error("Add failed — rollback");
-    setItems(snapshot);
-  }
-};
+
+    setIsOpen(true);
+
+    // BACKGROUND SYNC
+    if (!auth) return;
+
+    try {
+      await api.post("/cart/add", {
+        productId: payload.productId,
+        quantity: payload.quantity,
+        size: payload.size,
+        color: payload.color
+      });
+    } catch (err) {
+      // ROLLBACK
+      console.error("Add failed — rollback");
+      setItems(snapshot);
+    }
+  };
 
 
   // ------------------
   // Remove Item
   // ------------------
 
- const removeItem = async (productId: string, size: string, color: string) => {
+  const removeItem = async (productId: string, size: string, color: string) => {
 
-  const snapshot = [...items];
+    const snapshot = [...items];
 
-  updateLocalCart(prev =>
-    prev.filter(
-      i =>
-        !(
-          i.productId === productId &&
-          i.size === size &&
-          i.color === color
-        )
-    )
-  );
+    updateLocalCart(prev =>
+      prev.filter(
+        i =>
+          !(
+            i.productId === productId &&
+            i.size === size &&
+            i.color === color
+          )
+      )
+    );
 
-  if (!auth) return;
+    if (!auth) return;
 
-  try {
-    await api.del(`/cart/remove/${productId}`, {
-      data: { size, color }
-    });
-  } catch {
-    console.error("Remove failed — rollback");
-    setItems(snapshot);
-  }
-};
+    try {
+      await api.del(`/cart/remove/${productId}`, {
+        data: { size, color }
+      });
+    } catch {
+      console.error("Remove failed — rollback");
+      setItems(snapshot);
+    }
+  };
 
 
   // ------------------
   // Update Quantity
   // ------------------
 
- const updateQuantity = async (
-  productId: string,
-  size: string,
-  color: string,
-  quantity: number
-) => {
+  const updateQuantity = async (
+    productId: string,
+    size: string,
+    color: string,
+    quantity: number
+  ) => {
 
-  const snapshot = [...items];
+    const snapshot = [...items];
 
-  updateLocalCart(prev =>
-    prev.map(item =>
-      item.productId === productId &&
-      item.size === size &&
-      item.color === color
-        ? { ...item, quantity }
-        : item
-    )
-  );
+    updateLocalCart(prev =>
+      prev.map(item =>
+        item.productId === productId &&
+          item.size === size &&
+          item.color === color
+          ? { ...item, quantity }
+          : item
+      )
+    );
 
-  if (!auth) return;
+    if (!auth) return;
 
-  try {
-    await api.put("/cart/update", {
-      productId,
-      size,
-      color,
-      quantity
-    });
-  } catch {
-    console.error("Quantity update failed — rollback");
-    setItems(snapshot);
-  }
-};
+    try {
+      await api.put("/cart/update", {
+        productId,
+        size,
+        color,
+        quantity
+      });
+    } catch {
+      console.error("Quantity update failed — rollback");
+      setItems(snapshot);
+    }
+  };
 
 
   // ------------------
   // Clear Cart
   // ------------------
 
-const clearCart = async () => {
+  const clearCart = async () => {
 
-  const snapshot = [...items];
+    const snapshot = [...items];
 
-  setItems([]);
+    setItems([]);
 
-  if (!auth) {
-    localStorage.removeItem("guest_cart");
-    return;
-  }
+    if (!auth) {
+      localStorage.removeItem("guest_cart");
+      return;
+    }
 
-  try {
-    await api.del("/cart/clear");
-  } catch {
-    console.error("Clear failed — rollback");
-    setItems(snapshot);
-  }
-};
+    try {
+      await api.del("/cart/clear");
+    } catch {
+      console.error("Clear failed — rollback");
+      setItems(snapshot);
+    }
+  };
 
 
   // ------------------

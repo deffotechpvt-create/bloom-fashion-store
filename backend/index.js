@@ -9,6 +9,7 @@ import rateLimiter from './middleware/rateLimiter.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
+import adminRoutes from "./routes/adminRoutes.js"
 import productRoutes from './routes/productRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
@@ -17,6 +18,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import imageRoutes from './routes/imageRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -81,7 +83,8 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/wishlist', wishlistRoutes); 
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/admin', adminRoutes)
 
 // Health Check
 app.get('/health', (req, res) => {

@@ -3,7 +3,6 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { validationResult } from 'express-validator';
-import { sendOrderConfirmation } from '../utils/sendOrderEmail.js';
 
 // @desc    Checkout and create order
 // @route   POST /api/orders/checkout
@@ -89,61 +88,5 @@ export const getMyOrders = asyncHandler(async (req, res) => {
         success: true,
         count: orders.length,
         data: orders
-    });
-});
-
-// @desc    Get all orders (Admin)
-// @route   GET /api/orders
-// @access  Private/Admin
-export const getAllOrders = asyncHandler(async (req, res) => {
-    const { status, page = 1, limit = 10 } = req.query;
-
-    const query = {};
-    if (status) query.orderStatus = status;
-
-    const skip = (page - 1) * limit;
-
-    const orders = await Order.find(query)
-        .populate('user', 'name email')
-        .populate('products.product')
-        .limit(Number(limit))
-        .skip(skip)
-        .sort({ createdAt: -1 });
-
-    const total = await Order.countDocuments(query);
-
-    res.status(200).json({
-        success: true,
-        count: orders.length,
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit),
-        data: orders
-    });
-});
-
-// @desc    Update order status (Admin)
-// @route   PUT /api/orders/:orderId/status
-// @access  Private/Admin
-export const updateOrderStatus = asyncHandler(async (req, res) => {
-    const { status } = req.body;
-
-    if (!['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
-        return res.status(400).json({ success: false, message: 'Invalid status' });
-    }
-
-    const order = await Order.findById(req.params.orderId);
-
-    if (!order) {
-        return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    order.orderStatus = status;
-    await order.save();
-
-    res.status(200).json({
-        success: true,
-        message: 'Order status updated successfully',
-        data: order
     });
 });

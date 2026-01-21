@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import { useApi } from "../lib/api";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // ------------------
 // Types
@@ -37,7 +39,9 @@ const WISHLIST_KEY = "atelier_wishlist";
 
 export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
   const api = useApi();
-  const { auth, isLoading: authLoading } = useAuth();
+  const { auth, isAdmin, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [count, setCount] = useState(0);
@@ -48,14 +52,20 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || isAdmin) {
+      if (isAdmin) {
+        setWishlist([]);
+        setCount(0);
+      }
+      return;
+    }
 
     if (auth) {
       fetchWishlist();
     } else {
       loadGuestWishlist();
     }
-  }, [auth, authLoading]);
+  }, [auth, authLoading, isAdmin]);
 
   // ------------------
   // Guest Helpers
@@ -82,7 +92,7 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
       const res = await api.get("/wishlist");
       // ✅ Get product IDs from response
       const productIds = res.data.productIds || res.data.data || [];
-      
+
       setWishlist(productIds);
       setCount(productIds.length);
     } catch (error) {
@@ -99,6 +109,15 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
   // ------------------
 
   const addToWishlist = async (productId: string) => {
+    if (isAdmin) {
+      toast({
+        title: "Admin restriction",
+        description: "Admins cannot shop. Redirecting to dashboard...",
+        variant: "destructive",
+      });
+      navigate("/admin");
+      return;
+    }
     // Guest user
     if (!auth) {
       setWishlist(prev => {
@@ -169,7 +188,7 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-    const clearWishlist = async () => {
+  const clearWishlist = async () => {
     // Guest user
     if (!auth) {
       localStorage.removeItem(WISHLIST_KEY);
