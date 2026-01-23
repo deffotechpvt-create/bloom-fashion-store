@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Sparkles, ShoppingBag } from 'lucide-react';
-import { Product, products } from '@/data/products';
+import { Product } from '@/types/Product';
+import { useProducts } from '@/context/ProductsContext';
 import { useCart } from '@/context/CartContext';
 
 // Product images mapping
@@ -29,6 +30,8 @@ const ShopTheLook = ({ currentProduct }: ShopTheLookProps) => {
   const { addItem } = useCart();
 
   // Get complementary products (different categories, excluding current product)
+  const { products } = useProducts();
+
   const getComplementaryProducts = (): Product[] => {
     const complementaryCategories: Record<string, string[]> = {
       'Outerwear': ['Knitwear', 'Essentials', 'Tailoring'],

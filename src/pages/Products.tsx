@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-import { products, categories } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
+import type { Product } from '@/types/Product';
 import ProductCard from '@/components/ProductCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,39 +12,85 @@ import { Slider } from '@/components/ui/slider';
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([0, 50000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
   const [showFilters, setShowFilters] = useState(false);
 
-  const allColors = useMemo(() => 
-    [...new Set(products.flatMap((p) => p.colors))],
-    []
+  const { products, pagination, loadProducts, isLoading, isAppending } = useProducts();
+  const observer = useRef<IntersectionObserver>();
+
+  const fetchFilteredProducts = useCallback((page = 1, append = false, category = selectedCategory, range = priceRange, colors = selectedColors, sizes = selectedSizes) => {
+    loadProducts({
+      category: category === 'All' ? undefined : category.toLowerCase(),
+      minPrice: range[0],
+      maxPrice: range[1],
+      colors: colors.length > 0 ? colors.join(',') : undefined,
+      sizes: sizes.length > 0 ? sizes.join(',') : undefined,
+      page,
+      limit: 10
+    }, append);
+  }, [selectedCategory, priceRange, selectedColors, selectedSizes, loadProducts]);
+
+  const handleLoadMore = useCallback(() => {
+    if (pagination.hasMore && !isLoading && !isAppending) {
+      const nextPage = pagination.currentPage + 1;
+      fetchFilteredProducts(nextPage, true);
+    }
+  }, [pagination.hasMore, pagination.currentPage, isLoading, isAppending, fetchFilteredProducts]);
+
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination.hasMore) {
+        handleLoadMore();
+      }
+    }, { threshold: 1.0 });
+    if (node) observer.current.observe(node);
+  }, [isLoading, pagination.hasMore, handleLoadMore]);
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    fetchFilteredProducts(1, false, category);
+  };
+
+  const handlePriceChange = (range: number[]) => {
+    setPriceRange(range);
+    fetchFilteredProducts(1, false, selectedCategory, range);
+  };
+
+  const toggleColor = (color: string) => {
+    const updated = selectedColors.includes(color)
+      ? selectedColors.filter((c) => c !== color)
+      : [...selectedColors, color];
+    setSelectedColors(updated);
+    fetchFilteredProducts(1, false, selectedCategory, priceRange, updated);
+  };
+
+  const toggleSize = (size: string) => {
+    const updated = selectedSizes.includes(size)
+      ? selectedSizes.filter((s) => s !== size)
+      : [...selectedSizes, size];
+    setSelectedSizes(updated);
+    fetchFilteredProducts(1, false, selectedCategory, priceRange, selectedColors, updated);
+  };
+
+  const allColors = useMemo(() =>
+    [...new Set(products.flatMap((p: Product) => p.colors || []))],
+    [products]
   );
 
-  const allSizes = useMemo(() => 
-    [...new Set(products.flatMap((p) => p.sizes))],
-    []
+  const allSizes = useMemo(() =>
+    [...new Set(products.flatMap((p: Product) => p.sizes || []))],
+    [products]
   );
+
+  const categories = useMemo(() => ['All', 'Fashion', 'Electronics', 'Home', 'Books', 'Sports', 'Beauty', 'Toys', 'Food', 'Other'], []);
 
   const filteredProducts = useMemo(() => {
     let result = products;
-
-    if (selectedCategory !== 'All') {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
-
-    result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
-
-    if (selectedColors.length > 0) {
-      result = result.filter((p) => p.colors.some((c) => selectedColors.includes(c)));
-    }
-
-    if (selectedSizes.length > 0) {
-      result = result.filter((p) => p.sizes.some((s) => selectedSizes.includes(s)));
-    }
-
     switch (sortBy) {
       case 'price-low':
         result = [...result].sort((a, b) => a.price - b.price);
@@ -55,42 +102,30 @@ const Products = () => {
         result = [...result].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
         break;
     }
-
     return result;
-  }, [selectedCategory, priceRange, selectedColors, selectedSizes, sortBy]);
-
-  const toggleColor = (color: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-    );
-  };
-
-  const toggleSize = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
-    );
-  };
+  }, [products, sortBy]);
 
   const clearFilters = () => {
     setSelectedCategory('All');
-    setPriceRange([0, 500]);
+    setPriceRange([0, 50000]);
     setSelectedColors([]);
     setSelectedSizes([]);
     setSortBy('featured');
+    loadProducts({ limit: 10, page: 1 }, false);
   };
 
-  const hasActiveFilters = 
-    selectedCategory !== 'All' || 
-    priceRange[0] !== 0 || 
-    priceRange[1] !== 500 || 
-    selectedColors.length > 0 || 
+  const hasActiveFilters =
+    selectedCategory !== 'All' ||
+    priceRange[0] !== 0 ||
+    priceRange[1] !== 50000 ||
+    selectedColors.length > 0 ||
     selectedSizes.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <CartDrawer />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-6">
           <motion.div
@@ -100,7 +135,9 @@ const Products = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
                 <h1 className="text-3xl font-semibold text-foreground">All Products</h1>
-                <p className="text-muted-foreground mt-1">{filteredProducts.length} products</p>
+                <p className="text-muted-foreground mt-1">
+                  {isLoading && products.length === 0 ? 'Loading...' : `${pagination.total} products total`}
+                </p>
               </div>
 
               <div className="flex items-center gap-4">
@@ -149,12 +186,11 @@ const Products = () => {
                       {categories.map((category) => (
                         <button
                           key={category}
-                          onClick={() => setSelectedCategory(category)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedCategory === category
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          onClick={() => handleCategoryChange(category)}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedCategory === category
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {category}
                         </button>
@@ -168,14 +204,15 @@ const Products = () => {
                     <Slider
                       value={priceRange}
                       onValueChange={setPriceRange}
+                      onValueCommit={handlePriceChange}
                       min={0}
-                      max={500}
-                      step={10}
+                      max={50000}
+                      step={100}
                       className="mb-2"
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>${priceRange[0]}</span>
-                      <span>${priceRange[1]}</span>
+                      <span>₹{priceRange[0]}</span>
+                      <span>₹{priceRange[1]}</span>
                     </div>
                   </div>
 
@@ -187,11 +224,10 @@ const Products = () => {
                         <button
                           key={color}
                           onClick={() => toggleColor(color)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedColors.includes(color)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedColors.includes(color)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {color}
                         </button>
@@ -207,11 +243,10 @@ const Products = () => {
                         <button
                           key={size}
                           onClick={() => toggleSize(size)}
-                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                            selectedSizes.includes(size)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedSizes.includes(size)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                            }`}
                         >
                           {size}
                         </button>
@@ -223,22 +258,38 @@ const Products = () => {
 
               {/* Products Grid */}
               <div className="lg:col-span-3">
-                {filteredProducts.length === 0 ? (
+                {isLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="aspect-[3/4] bg-secondary animate-pulse rounded-2xl" />
+                    ))}
+                  </div>
+                ) : filteredProducts.length === 0 ? (
                   <div className="text-center py-16">
                     <p className="text-muted-foreground mb-4">No products found matching your filters.</p>
                     <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
                   </div>
                 ) : (
-                  <motion.div 
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                    layout
-                  >
-                    <AnimatePresence mode="popLayout">
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredProducts.map((product, index) => (
                         <ProductCard key={product.id} product={product} index={index} />
                       ))}
-                    </AnimatePresence>
-                  </motion.div>
+                    </div>
+
+                    {/* Infinite Scroll Trigger */}
+                    <div ref={lastElementRef} className="h-20 flex items-center justify-center mt-8">
+                      {isAppending && (
+                        <div className="flex gap-2 items-center text-muted-foreground">
+                          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span>Loading more...</span>
+                        </div>
+                      )}
+                      {!pagination.hasMore && products.length > 0 && (
+                        <p className="text-muted-foreground text-sm">You've reached the end.</p>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

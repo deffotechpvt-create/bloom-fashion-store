@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { products, categories, type Category } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
+import type { Product } from '@/types/Product';
 import ProductCard from './ProductCard';
 
 const ProductGrid = () => {
-  const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const { products } = useProducts();
+
+  // derive categories from loaded products
+  const categories = ['All', ...Array.from(new Set(products.map((p: Product) => p.category)))];
 
   const filteredProducts = activeCategory === 'All'
     ? products

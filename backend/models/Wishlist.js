@@ -1,0 +1,36 @@
+import mongoose from 'mongoose';
+
+const wishlistItemSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  addedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const wishlistSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
+  items: [wishlistItemSchema]
+}, {
+  timestamps: true
+});
+
+// Index for efficient queries
+wishlistSchema.index({ user: 1 });
+wishlistSchema.index({ 'items.product': 1 });
+
+// Method to check if product exists in wishlist
+wishlistSchema.methods.hasProduct = function(productId) {
+  return this.items.some(item => item.product.toString() === productId.toString());
+};
+
+export default mongoose.model('Wishlist', wishlistSchema);

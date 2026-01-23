@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Clock, TrendingUp, ArrowRight } from 'lucide-react';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
 import { Input } from '@/components/ui/input';
 
 // Product images mapping
@@ -51,14 +51,15 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
     };
   }, [isOpen]);
 
+  const { products } = useProducts();
+
   const searchResults = useMemo(() => {
     if (!query.trim()) return [];
     const searchTerm = query.toLowerCase();
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.category.toLowerCase().includes(searchTerm) ||
-        product.description.toLowerCase().includes(searchTerm)
+    return products.filter((product) =>
+      (product.name || '').toLowerCase().includes(searchTerm) ||
+      (product.category || '').toLowerCase().includes(searchTerm) ||
+      (product.description || '').toLowerCase().includes(searchTerm)
     );
   }, [query]);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ZoomIn, RotateCcw } from 'lucide-react';
-import { Product } from '@/data/products';
+import { Product } from '@/types/Product';
 
 // Product images mapping
 import coat1 from '@/assets/products/coat-1.jpg';
@@ -50,9 +50,11 @@ const ProductImageGallery = ({ product, selectedColor }: ProductImageGalleryProp
     setSelectedIndex(0);
   }, [selectedColor]);
 
-  // Generate gallery images (using main image 3 times to simulate multiple angles)
+  // Generate gallery images
   const mainImage = imageMap[product.image] || product.image;
-  const galleryImages = [mainImage, mainImage, mainImage, mainImage];
+  const galleryImages = (product.images && product.images.length > 0)
+    ? product.images.map(img => imageMap[img] || img)
+    : [mainImage, mainImage, mainImage, mainImage];
   const imageFilter = selectedColor ? colorOverlayMap[selectedColor] : '';
 
   const handlePrev = () => {
@@ -95,9 +97,8 @@ const ProductImageGallery = ({ product, selectedColor }: ProductImageGalleryProp
             <img
               src={galleryImages[selectedIndex]}
               alt={`${product.name} - View ${selectedIndex + 1}`}
-              className={`w-full h-full object-cover transition-all duration-300 ${
-                isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
-              }`}
+              className={`w-full h-full object-cover transition-all duration-300 ${isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
+                }`}
               style={{
                 filter: imageFilter,
                 ...(isZoomed ? { transformOrigin: `${mousePosition.x}% ${mousePosition.y}%` } : {}),
@@ -148,11 +149,10 @@ const ProductImageGallery = ({ product, selectedColor }: ProductImageGalleryProp
           <button
             key={index}
             onClick={() => setSelectedIndex(index)}
-            className={`relative flex-shrink-0 w-20 h-24 rounded-xl overflow-hidden transition-all ${
-              selectedIndex === index
+            className={`relative flex-shrink-0 w-20 h-24 rounded-xl overflow-hidden transition-all ${selectedIndex === index
                 ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                 : 'opacity-60 hover:opacity-100'
-            }`}
+              }`}
           >
             <img
               src={image}

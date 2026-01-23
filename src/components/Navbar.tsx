@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Sun, Moon, Menu, X, Search, Heart, User } from 'lucide-react';
+import { ShoppingBag, Sun, Moon, Menu, X, Search, Heart, User, LogIn } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -26,6 +26,8 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Shop', href: '/products' },
     { name: 'About', href: '#about' },
+    { name: 'Contact', href: '#contact' },
+    { name: 'orders', href: '/orders' }
   ];
 
   return (
@@ -33,9 +35,8 @@ const Navbar = () => {
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? 'glass py-3' : 'bg-transparent py-5'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'glass py-3' : 'bg-transparent py-5'
+          }`}
       >
         <nav className="container mx-auto px-6 flex items-center justify-between">
           <Link to="/" className="relative z-10">
@@ -60,7 +61,11 @@ const Navbar = () => {
 
             <Link to={user ? '/profile' : '/login'}>
               <motion.div className="relative p-2 rounded-full hover:bg-secondary transition-colors" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <User className="w-5 h-5 text-foreground" />
+                {user ? (
+                  <User className="w-5 h-5 text-foreground" />
+                ) : (
+                  <LogIn className="w-5 h-5 text-foreground" />
+                )}
               </motion.div>
             </Link>
 

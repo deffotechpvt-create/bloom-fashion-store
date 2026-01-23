@@ -9,6 +9,7 @@ import pants1 from '@/assets/products/pants-1.jpg';
 import tshirt1 from '@/assets/products/tshirt-1.jpg';
 import blazer1 from '@/assets/products/blazer-1.jpg';
 import shirt1 from '@/assets/products/shirt-1.jpg';
+import { useNavigate } from 'react-router-dom';
 
 const imageMap: Record<string, string> = {
   '/products/coat-1.jpg': coat1,
@@ -21,6 +22,7 @@ const imageMap: Record<string, string> = {
 
 const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, updateQuantity, total, itemCount } = useCart();
+  const navigate = useNavigate();
 
   return (
     <AnimatePresence>
@@ -82,7 +84,7 @@ const CartDrawer = () => {
                   <AnimatePresence mode="popLayout">
                     {items.map((item) => (
                       <motion.li
-                        key={`${item.product.id}-${item.size}-${item.color}`}
+                        key={`${item.productId}-${item.size}-${item.color}`}
                         layout
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -92,8 +94,8 @@ const CartDrawer = () => {
                         {/* Product Image */}
                         <div className="w-24 h-32 rounded-xl overflow-hidden bg-secondary flex-shrink-0">
                           <img
-                            src={imageMap[item.product.image] || item.product.image}
-                            alt={item.product.name}
+                            src={imageMap[item.image] || item.image}
+                            alt={item.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -103,14 +105,14 @@ const CartDrawer = () => {
                           <div className="flex justify-between">
                             <div>
                               <h3 className="font-medium text-foreground">
-                                {item.product.name}
+                                {item.name}
                               </h3>
                               <p className="text-sm text-muted-foreground mt-1">
                                 {item.size} · {item.color}
                               </p>
                             </div>
                             <button
-                              onClick={() => removeItem(item.product.id, item.size, item.color)}
+                              onClick={() => removeItem(item.productId, item.size, item.color)}
                               className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                               aria-label="Remove item"
                             >
@@ -124,7 +126,7 @@ const CartDrawer = () => {
                               <button
                                 onClick={() =>
                                   updateQuantity(
-                                    item.product.id,
+                                    item.productId,
                                     item.size,
                                     item.color,
                                     item.quantity - 1
@@ -141,7 +143,7 @@ const CartDrawer = () => {
                               <button
                                 onClick={() =>
                                   updateQuantity(
-                                    item.product.id,
+                                    item.productId,
                                     item.size,
                                     item.color,
                                     item.quantity + 1
@@ -156,7 +158,7 @@ const CartDrawer = () => {
 
                             {/* Price */}
                             <span className="font-semibold text-foreground">
-                              ${item.product.price * item.quantity}
+                              ${item.price}
                             </span>
                           </div>
                         </div>
@@ -178,6 +180,10 @@ const CartDrawer = () => {
                   Shipping and taxes calculated at checkout
                 </p>
                 <motion.button
+                  onClick={() => {
+                    closeCart();
+                    navigate('/checkout');
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full py-4 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors"
