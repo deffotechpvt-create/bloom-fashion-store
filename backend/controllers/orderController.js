@@ -14,6 +14,7 @@ export const checkout = asyncHandler(async (req, res) => {
     }
 
     const { shippingAddress } = req.body;
+    console.log('Shipping Address:', shippingAddress);
 
     // Get user cart
     const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');

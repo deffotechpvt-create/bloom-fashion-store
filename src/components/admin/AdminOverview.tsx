@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { useProducts } from '@/context/ProductsContext';
 import { useApi } from '@/lib/api';
@@ -6,20 +6,26 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { getBaseURL } from '@/lib/api';
 
 const AdminOverview = () => {
-    const { dashboardStats, statsLoading } = useAdmin();
+    const { dashboardStats, statsLoading, orders } = useAdmin();
     const { products } = useProducts();
     const { get } = useApi();
 
     const [enrichedOrders, setEnrichedOrders] = useState<any[]>([]);
     const [enrichedProducts, setEnrichedProducts] = useState<any[]>([]);
     const [isEnriching, setIsEnriching] = useState(false);
+    const fetchedOrdersRef = useRef(new Set());
 
     // Enrich data when dashboardStats changes
     useEffect(() => {
-        if (dashboardStats && !isEnriching) {
+        if (
+            dashboardStats &&
+            !isEnriching &&
+            orders.length > 0 // IMPORTANT
+        ) {
             enrichDashboardData();
         }
-    }, [dashboardStats]);
+    }, [dashboardStats, orders]);
+
 
     const enrichDashboardData = async () => {
         setIsEnriching(true);
@@ -81,6 +87,27 @@ const AdminOverview = () => {
     const enrichRecentOrders = async (recentOrders: any[]) => {
         return Promise.all(
             recentOrders.map(async (order) => {
+                // 1️⃣ Try to find full order in AdminContext
+                const existingOrder = orders.find(
+                    (o: any) => o._id === order._id
+                );
+                if (fetchedOrdersRef.current.has(order._id)) {
+                    return {
+                        ...order,
+                        user: null
+                    };
+                }
+                // 2️⃣ If found AND user exists → use it
+                if (existingOrder?.user) {
+                    return {
+                        _id: existingOrder._id,
+                        totalAmount: existingOrder.totalAmount,
+                        orderStatus: existingOrder.orderStatus,
+                        paymentStatus: existingOrder.paymentStatus,
+                        createdAt: existingOrder.createdAt,
+                        user: existingOrder.user
+                    };
+                }
                 try {
                     // Fetch full order details (includes user)
                     const res = await get(`/admin/orders/${order._id}`);

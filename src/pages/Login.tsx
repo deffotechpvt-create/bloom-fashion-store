@@ -9,12 +9,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,7 +48,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-6">
           <motion.div
@@ -77,7 +80,11 @@ const Login = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  {/* ✅ FIXED: Label and Forgot Password in correct position */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                  </div>
+
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
@@ -118,20 +125,54 @@ const Login = () => {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Don't have an account?{' '}
-                  <Link to="/signup" className="text-primary hover:underline font-medium">
-                    Create one
-                  </Link>
-                </p>
+              <div className="mt-6 space-y-4">
+                {/* Sign Up */}
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-primary hover:underline font-medium">
+                      Create one
+                    </Link>
+                  </p>
+                </div>
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Trouble Signing In?</span>
+                  </div>
+                </div>
+
+                {/* Forgot Password Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="w-full group flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border hover:border-primary/50 transition-all"
+                >
+                  <Lock className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-sm">
+                    <span className="text-muted-foreground">Forgot Password?</span>{' '}
+                    <span className="text-primary font-medium">Reset it instantly</span>
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </button>
               </div>
+
             </div>
           </motion.div>
         </div>
       </main>
 
       <Footer />
+
+      {/* ✅ Forgot Password Dialog */}
+      <ForgotPasswordDialog
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };

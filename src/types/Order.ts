@@ -9,6 +9,7 @@ export interface ShippingAddress {
   state: string;
   pincode: string;
   country: string;
+  phone?: string;
 }
 
 export interface OrderItem {

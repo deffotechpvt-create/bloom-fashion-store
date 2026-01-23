@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
-import { useApi } from '../lib/api';
+import { useApi, getBaseURL } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
@@ -223,14 +223,27 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 if (filters?.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
                 if (filters?.search) params.append('search', filters.search);
 
-                const res = await get(`/admin/orders?${params.toString()}`);
-                const data = res.data;
+                const { data } = await get(`/admin/orders?${params.toString()}`);
+                const normalizedOrders = (data.data || []).map((order: any) => ({
+                    ...order,
+                    products: order.products.map((item: any) => ({
+                        ...item,
+                        product: {
+                            ...item.product,
+                            image: item.product?.image
+                                ? `${getBaseURL().replace(/\/api$/, '')}${item.product.image}`
+                                : null
+
+                        }
+                    }))
+                })); ``
 
                 if (append) {
-                    setOrders(prev => [...prev, ...(data.data || [])]);
+                    setOrders(prev => [...prev, ...normalizedOrders]);
                 } else {
-                    setOrders(data.data || []);
+                    setOrders(normalizedOrders);
                 }
+
 
                 setOrdersPagination({
                     currentPage: data.pagination?.page || 1,

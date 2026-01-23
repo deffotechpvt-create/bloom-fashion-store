@@ -37,6 +37,7 @@ app.use(
         sanitizeQuery: false
     })
 );
+app.set("trust proxy", 1);
 
 // Cookie Parser
 app.use(cookieParser());

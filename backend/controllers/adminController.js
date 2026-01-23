@@ -9,84 +9,6 @@ let dashboardCache = {
 
 const CACHE_TTL = 60 * 1000; // 1 minute
 
-// ==========================================
-// DASHBOARD STATISTICS
-// ==========================================
-
-// export const getDashboardStats = asyncHandler(async (req, res) => {
-//     const totalUsers = await User.countDocuments({ role: 'customer' });
-//     const totalProducts = await Product.countDocuments();
-//     const totalOrders = await Order.countDocuments();
-
-//     const revenueData = await Order.aggregate([
-//         { $match: { paymentStatus: 'paid' } },
-//         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-//     ]);
-//     const totalRevenue = revenueData[0]?.total || 0;
-
-//     const recentOrders = await Order.find()
-//         .populate('user', 'name email')
-//         .sort({ createdAt: -1 })
-//         .limit(10)
-//         .select('_id orderStatus totalAmount paymentStatus createdAt');
-
-//     const topProducts = await Order.aggregate([
-//         { $match: { paymentStatus: 'paid' } },
-//         { $unwind: '$products' },
-//         {
-//             $group: {
-//                 _id: '$products.product',
-//                 totalQuantity: { $sum: '$products.quantity' },
-//                 totalRevenue: { $sum: { $multiply: ['$products.price', '$products.quantity'] } }
-//             }
-//         },
-//         { $sort: { totalQuantity: -1 } },
-//         { $limit: 5 },
-//         {
-//             $lookup: {
-//                 from: 'products',
-//                 localField: '_id',
-//                 foreignField: '_id',
-//                 as: 'productDetails'
-//             }
-//         },
-//         { $unwind: '$productDetails' },
-//         {
-//             $project: {
-//                 _id: '$_id',
-//                 name: '$productDetails.name',
-//                 image: '$productDetails.image',
-//                 totalQuantity: 1,
-//                 totalRevenue: 1
-//             }
-//         }
-//     ]);
-
-//     const startOfMonth = new Date();
-//     startOfMonth.setDate(1);
-//     startOfMonth.setHours(0, 0, 0, 0);
-
-//     const newUsersThisMonth = await User.countDocuments({
-//         role: 'customer',
-//         createdAt: { $gte: startOfMonth }
-//     });
-
-//     res.json({
-//         success: true,
-//         data: {
-//             overview: {
-//                 totalUsers,
-//                 totalProducts,
-//                 totalOrders,
-//                 totalRevenue,
-//                 newUsersThisMonth
-//             },
-//             recentOrders,
-//             topProducts
-//         }
-//     });
-// });
-
 
 export const getDashboardStats = asyncHandler(async (req, res) => {
 
@@ -216,7 +138,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(filter)
         .populate('user', 'name email phone')
-        .populate('products.product', 'name image price')
+        .populate('products.product', 'image')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);

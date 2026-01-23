@@ -30,6 +30,20 @@ interface LoginResponse {
   error?: string;
 }
 
+// ✅ NEW: Forgot password response type
+interface ForgotPasswordResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+// ✅ NEW: Reset password response type
+interface ResetPasswordResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   isAdmin: boolean;
@@ -38,6 +52,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
   updateUserProfile: (updates: Partial<AuthUser>) => void; // ✅ Added helper
+  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>; // ✅ NEW
+  resetPassword: (email: string, otp: string, newPassword: string) => Promise<ResetPasswordResponse>; // ✅ NEW
 }
 
 // ----------------------
@@ -63,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const restoreSession = async () => {
     try {
       const res = await api.get("/auth/profile");
-      
+
       // ✅ Transform backend user to frontend format
       const backendUser = res.data.user;
       const transformedUser: AuthUser = {
@@ -98,11 +114,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const handler = (e: any) => {
       const updatedUser = e.detail;
-      
+
       // ✅ Merge updates with existing user
       setUser(prev => {
         if (!prev) return null;
-        
+
         return {
           ...prev,
           id: updatedUser._id || updatedUser.id || prev.id,
@@ -135,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<LoginResponse> => {
     try {
       const res = await api.post("/auth/login", { email, password });
-      
+
       // ✅ Transform backend user to frontend format
       const backendUser = res.data.user;
       const transformedUser: AuthUser = {
@@ -186,6 +202,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // --------------------
+  // ✅ NEW: Forgot Password (Send OTP)
+  // --------------------
+  const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
+    try {
+      const res = await api.post("/auth/forgot-password", { email });
+
+      return {
+        success: true,
+        message: res.data.message || "OTP sent to your email"
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.message || "Failed to send OTP"
+      };
+    }
+  };
+
+  // --------------------
+  // ✅ NEW: Reset Password (Verify OTP + Set New Password)
+  // --------------------
+  const resetPassword = async (
+    email: string,
+    otp: string,
+    newPassword: string
+  ): Promise<ResetPasswordResponse> => {
+    try {
+      const res = await api.post("/auth/reset-password", {
+        email,
+        otp,
+        newPassword
+      });
+
+      return {
+        success: true,
+        message: res.data.message || "Password reset successful"
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.message || "Failed to reset password"
+      };
+    }
+  };
+
+  // --------------------
   // Derived state
   // --------------------
   const isAdmin = user?.role === "admin";
@@ -199,7 +261,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         login,
         logout,
-        updateUserProfile // ✅ Exposed
+        updateUserProfile, // ✅ Exposed
+        forgotPassword, // ✅ NEW
+        resetPassword // ✅ NEW
       }}
     >
       {children}

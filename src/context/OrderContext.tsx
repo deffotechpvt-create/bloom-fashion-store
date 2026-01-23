@@ -12,6 +12,7 @@ import type {
   FrontendOrder,
   ShippingAddress
 } from "@/types/Order";
+import { Phone } from "lucide-react";
 
 // ------------------
 // Types
@@ -235,7 +236,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         key: paymentData.keyId || paymentData.key,
         amount: paymentData.amount,
         currency: paymentData.currency || 'INR',
-        name: 'Your Store Name',
+        name: 'ATELIER | Refined Essentials',
         description: 'Order Payment',
         order_id: paymentData.razorpayOrderId || paymentData.orderId,
         handler: async function (response: any) {
@@ -269,6 +270,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         prefill: {
           name: user?.name || '',
           email: user?.email || '',
+          Phone: user?.phone || '',
         },
         theme: {
           color: '#000000',

@@ -27,7 +27,8 @@ const Checkout = () => {
     city: '',
     state: '',
     pincode: '',
-    country: 'India'
+    country: 'India',
+    phone: '',
   });
 
   useEffect(() => {
@@ -37,9 +38,11 @@ const Checkout = () => {
         city: user.address.city || '',
         state: user.address.state || '',
         pincode: user.address.pincode || '',
-        country: user.address.country || 'India'
+        country: user.address.country || 'India',
+        phone: user.phone || '',
       });
     }
+    console.log('Shipping Address Updated:', shippingAddress);
   }, [user, useProfileAddress]);
 
   const handleUseProfileAddress = (checked: boolean) => {
@@ -73,7 +76,7 @@ const Checkout = () => {
 
     // Validation
     if (!shippingAddress.street || !shippingAddress.city ||
-        !shippingAddress.state || !shippingAddress.pincode) {
+      !shippingAddress.state || !shippingAddress.pincode) {
       toast({
         title: 'Incomplete address',
         description: 'Please fill all address fields to continue.',
@@ -254,6 +257,17 @@ const Checkout = () => {
                           placeholder="400001"
                           value={shippingAddress.pincode}
                           onChange={(e) => handleInputChange('pincode', e.target.value)}
+                          required
+                          maxLength={6}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          placeholder="400001"
+                          value={shippingAddress.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
                           required
                           maxLength={6}
                         />

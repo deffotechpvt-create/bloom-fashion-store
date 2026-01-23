@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - ATELIER</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        .card {
+            background-color: #0f0f12;
+            border-radius: 16px;
+            padding: 36px 28px;
+        }
+
+        .brand {
+            color: #5efcff;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            color: #ffffff;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: #b5b5b5;
+            font-size: 14px;
+            margin-bottom: 22px;
+        }
+
+        .text {
+            color: #d1d1d1;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* ORDER SUMMARY CARD */
+        .summary-box {
+            background-color: #111118;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 22px 0;
+            border: 1px solid rgba(94, 252, 255, 0.3);
+            text-align: center;
+        }
+
+        .summary-id {
+            font-size: 13px;
+            color: #a1a1a1;
+            margin-bottom: 6px;
+        }
+
+        .summary-amount {
+            font-size: 34px;
+            font-weight: bold;
+            color: #5efcff;
+            margin: 10px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: rgba(20, 184, 166, 0.15);
+            color: #14b8a6;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* INFO ROWS */
+        .info-row {
+            background: #111118;
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #a1a1a1;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* SECTION */
+        .section-title {
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 22px;
+            margin-bottom: 8px;
+        }
+
+        /* ADDRESS */
+        .address-box {
+            background-color: #111118;
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid rgba(94, 252, 255, 0.25);
+        }
+
+        /* TABLE */
+        .order-table th {
+            background: #111118;
+            color: #5efcff;
+            font-size: 12px;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(94, 252, 255, 0.3);
+        }
+
+        .order-table td {
+            padding: 10px;
+            font-size: 13px;
+            color: #d1d1d1;
+        }
+
+        /* DELIVERY BOX */
+        .delivery-box {
+            background: rgba(20, 184, 166, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid rgba(20, 184, 166, 0.3);
+        }
+
+        .small-text {
+            color: #d1d1d1;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 4px 0;
+        }
+
+        /* FOOTER */
+        .footer {
+            color: #8a8a8a;
+            font-size: 12px;
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        @media only screen and (max-width:600px) {
+
+            .card {
+                padding: 26px 18px !important;
+            }
+
+            .summary-amount {
+                font-size: 28px !important;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Preview Text -->
+    <span style="display:none;opacity:0;color:transparent;height:0;width:0;">
+        Your ATELIER order has been successfully placed
+    </span>
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+            <td align="center" style="padding:10px 0;">
+
+                <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;">
+                    <tr>
+                        <td class="card">
+
+                            <div class="brand">ATELIER ORDERS</div>
+
+                            <div class="title">Order Confirmed</div>
+                            <div class="subtitle">Thank you for your purchase</div>
+
+                            <p class="text">
+                                Hello <strong style="color:#ffffff;">{{userName}}</strong>,
+                            </p>
+
+                            <p class="text">
+                                Your order has been successfully placed and is now being processed. You will receive a
+                                shipping notification once your items are dispatched.
+                            </p>
+
+                            <!-- ORDER SUMMARY -->
+                            <div class="summary-box">
+                                <div class="summary-id">ORDER ID: #{{orderId}}</div>
+                                <div class="summary-amount">₹{{totalAmount}}</div>
+                                <div class="status-badge">Order Confirmed</div>
+                            </div>
+
+                            <div class="info-row">
+                                <div class="info-label">Payment Status</div>
+                                <div class="info-value" style="color: {{paymentStatusColor}};">{{paymentStatus}}</div>
+                            </div>
+
+                            <!-- ORDER DETAILS -->
+                            <div class="section-title">Order Details</div>
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" class="order-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th style="text-align:center;width:60px;">Qty</th>
+                                        <th style="text-align:right;width:100px;">Price</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {{productRows}}
+
+                                    <tr>
+                                        <td colspan="2" style="text-align:right;font-weight:bold;color:#ffffff;">
+                                            Total (Including GST)
+                                        </td>
+                                        <td style="text-align:right;font-weight:bold;color:#5efcff;">
+                                            ₹{{totalAmount}}
+                                        </td>
+                                    </tr>
+
+
+                                </tbody>
+                            </table>
+
+                            <!-- SHIPPING -->
+                            <div class="section-title">Shipping Address</div>
+
+                            <div class="address-box">
+                                <p style="color:#ffffff;font-weight:600;margin-bottom:6px;">{{userName}}</p>
+                                <p class="small-text">{{street}}</p>
+                                <p class="small-text">{{city}}, {{state}} - {{pincode}}</p>
+                                <p class="small-text">{{country}}</p>
+                                <p class="small-text">{{phoneNumber}}</p>
+                            </div>
+
+                            <!-- DELIVERY -->
+                            <div class="delivery-box">
+                                <p style="color:#14b8a6;font-size:14px;margin:0;">
+                                    <strong>Expected Delivery:</strong> 5–7 Business Days
+                                </p>
+                            </div>
+
+                            <div class="footer">
+                                © {{currentYear}} ATELIER — All rights reserved
+                            </div>
+
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

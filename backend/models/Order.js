@@ -30,7 +30,8 @@ const orderSchema = new mongoose.Schema({
         city: { type: String, required: true },
         state: { type: String, required: true },
         pincode: { type: String, required: true },
-        country: { type: String, default: 'India' }
+        country: { type: String, default: 'India' },
+        phone: { type: String }
     },
     totalAmount: {
         type: Number,
@@ -49,7 +50,8 @@ const orderSchema = new mongoose.Schema({
     },
     paymentId: String,
     razorpayOrderId: String,
-    razorpaySignature: String
+    razorpaySignature: String,
+    trackingNumber: String
 }, {
     timestamps: true
 });

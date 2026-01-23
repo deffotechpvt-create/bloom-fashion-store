@@ -53,7 +53,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsUpdating(true);
 
-      const res = await api.put("/users/profile", data);
+      const res = await api.put("/auth/profile", data);
 
       /*
         Backend should return updated user:

@@ -155,7 +155,7 @@ const AdminUsers = () => {
                         onChange={(e) => handleRoleFilter(e.target.value)}
                     >
                         <option value="">All Roles</option>
-                        <option value="user">User</option>
+                        <option value="customer">customer</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
@@ -213,7 +213,7 @@ const AdminUsers = () => {
                                             onChange={(e) => handleRoleChange(user._id, e.target.value)}
                                             className="text-xs bg-secondary/80 border-none rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary outline-none cursor-pointer"
                                         >
-                                            <option value="user">Set User</option>
+                                            <option value="customer">Set customer</option>
                                             <option value="admin">Set Admin</option>
                                         </select>
                                     </div>

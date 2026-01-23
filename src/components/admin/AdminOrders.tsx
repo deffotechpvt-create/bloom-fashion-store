@@ -44,6 +44,7 @@ const AdminOrders = () => {
         if (orders.length === 0) {
             getAllOrders(1, 10, filters);
         }
+        console.log('Filters changed:', orders);
     }, [getAllOrders, orders.length, filters]);
 
     const handleFilterChange = (newFilters: any) => {
@@ -105,17 +106,49 @@ const AdminOrders = () => {
                             </div>
 
                             {/* Order Items */}
-                            <div className="mb-6 bg-secondary/50 rounded-xl p-4">
-                                <p className="text-[10px] font-bold mb-3 uppercase tracking-widest text-muted-foreground">Order Items</p>
-                                <div className="space-y-2">
+                            <div className="mb-6 bg-secondary/40 rounded-2xl p-5 border border-border/40">
+                                <p className="text-xs font-bold mb-4 uppercase tracking-widest text-muted-foreground">
+                                    Order Items
+                                </p>
+
+                                <div className="space-y-3">
                                     {order.products.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/30 last:border-0 last:pb-0">
-                                            <span className="text-foreground/80">{item.product?.name || item.name}</span>
-                                            <span className="font-semibold px-2 py-0.5 bg-background rounded text-xs">x{item.quantity}</span>
+                                        <div
+                                            key={idx}
+                                            className="flex items-center justify-between gap-4 p-3 bg-background/40 rounded-xl border border-border/30 hover:bg-background/60 transition"
+                                        >
+
+                                            {/* LEFT: IMAGE + DETAILS */}
+                                            <div className="flex items-center gap-4 flex-1 min-w-0">
+
+                                                <img
+                                                    src={item.product?.image || "/placeholder.png"}
+                                                    alt={item.product?.name || item.name || "Product"}
+                                                    className="w-14 h-14 object-cover rounded-xl border border-border/40"
+                                                />
+
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium text-foreground truncate">
+                                                        {item.product?.name || item.name}
+                                                    </p>
+
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        ₹{item.price} each
+                                                    </p>
+                                                </div>
+
+                                            </div>
+
+                                            {/* RIGHT: QUANTITY BADGE */}
+                                            <div className="flex items-center justify-center min-w-[42px] h-[32px] rounded-lg bg-primary/10 text-primary text-sm font-semibold">
+                                                ×{item.quantity}
+                                            </div>
+
                                         </div>
                                     ))}
                                 </div>
                             </div>
+
 
                             <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-border">
                                 <div className="w-full sm:flex-1">

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to ATELIER</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        .card {
+            background-color: #0f0f12;
+            border-radius: 16px;
+            padding: 36px 28px;
+        }
+
+        .brand {
+            color: #5efcff;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            color: #ffffff;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: #b5b5b5;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .text {
+            color: #d1d1d1;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .welcome-box {
+            background-color: #111118;
+            border-radius: 12px;
+            padding: 22px;
+            margin: 22px 0;
+            border: 1px solid rgba(94, 252, 255, 0.3);
+        }
+
+        .box-title {
+            color: #a1a1a1;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .small-text {
+            color: #bdbdbd;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .action-btn {
+            display: inline-block;
+            background: #14b8a6;
+            color: #ffffff !important;
+            padding: 14px 26px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .section-title {
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 22px;
+            margin-bottom: 6px;
+        }
+
+        .footer {
+            color: #8a8a8a;
+            font-size: 12px;
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        @media only screen and (max-width:600px) {
+
+            .card {
+                padding: 26px 18px !important;
+            }
+
+            .action-btn {
+                width: 100% !important;
+                text-align: center !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Inbox Preview Text -->
+    <span style="display:none;opacity:0;color:transparent;height:0;width:0;">
+        Welcome to ATELIER — Your account is ready
+    </span>
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+            <td align="center" style="padding:10px 0;">
+
+                <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;">
+                    <tr>
+                        <td class="card">
+
+                            <div class="brand">ATELIER PLATFORM</div>
+
+                            <div class="title">Welcome to ATELIER</div>
+                            <div class="subtitle">Your account has been successfully created</div>
+
+                            <p class="text">
+                                Hello <strong style="color:#ffffff;">{{userName}}</strong>,
+                            </p>
+
+                            <p class="text">
+                                Your ATELIER account is now active. You can start browsing products, managing your
+                                profile, and tracking orders from your dashboard.
+                            </p>
+
+                            <div class="welcome-box">
+
+                                <div class="box-title">Getting Started</div>
+
+                                <ul style="padding-left:18px;margin:8px 0 0 0;">
+                                    <li class="small-text">Complete your profile information</li>
+                                    <li class="small-text">Explore collections and save favorites</li>
+                                    <li class="small-text">Track your orders in real time</li>
+                                </ul>
+
+                            </div>
+
+                            <div style="text-align:center; margin:24px 0;">
+                                <a href="{{shopUrl}}" class="action-btn">Go To Dashboard</a>
+                            </div>
+
+                            <div class="section-title">Security Reminder</div>
+
+                            <p class="small-text">
+                                If this account was not created by you, please contact our support team immediately.
+                            </p>
+
+                            <div class="footer">
+                                © {{currentYear}} ATELIER — All rights reserved
+                            </div>
+
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

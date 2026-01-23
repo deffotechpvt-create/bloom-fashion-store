@@ -1,9 +1,11 @@
 import crypto from 'crypto';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import User from '../models/User.js';
 import razorpayInstance from '../config/razorpay.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { sendOrderConfirmation } from '../utils/sendOrderEmail.js';
+import { sendOrderConfirmationEmail } from '../utils/sendEmail.js';
+
 
 // @desc    Create Razorpay order
 // @route   POST /api/payment/create-order
@@ -27,7 +29,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
     // Create Razorpay order
     const options = {
-        amount: Math.round(order.totalAmount * 100), // Amount in paise, rounded to avoid float issues
+        amount: Math.round(order.totalAmount * 100), // Amount in paise
         currency: 'INR',
         receipt: `order_${order._id}`,
         payment_capture: 1
@@ -50,13 +52,15 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     });
 });
 
+
 // @desc    Verify Razorpay payment
 // @route   POST /api/payment/verify-payment
 // @access  Private
 export const verifyPayment = asyncHandler(async (req, res) => {
     const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
-    const order = await Order.findById(orderId);
+    // ✅ Find order and populate product details
+    const order = await Order.findById(orderId).populate('products.product');
 
     if (!order) {
         return res.status(404).json({ success: false, message: 'Order not found' });
@@ -85,17 +89,32 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     order.razorpaySignature = razorpaySignature;
     await order.save();
 
-    // Reduce stock
-    for (const item of order.products) {
+    // ✅ Reduce stock and update product names in order
+    for (let i = 0; i < order.products.length; i++) {
+        const item = order.products[i];
         const product = await Product.findById(item.product);
+
         if (product) {
+            // Reduce stock
             product.stock -= item.quantity;
             await product.save();
+
+            // ✅ Update product name in order if not already set
+            if (!item.name) {
+                order.products[i].name = product.name;
+            }
         }
     }
 
-    // Send confirmation email
-    await sendOrderConfirmation(order, req.user);
+    await order.save();
+
+    // ✅ Get user details for email
+    const user = await User.findById(req.user._id);
+
+    // ✅ Send confirmation email (async - don't block response)
+    sendOrderConfirmationEmail(user.email, order, user)
+        .then(() => console.log('✅ Order confirmation email sent to:', user.email))
+        .catch(err => console.error('❌ Failed to send order confirmation:', err));
 
     res.status(200).json({
         success: true,

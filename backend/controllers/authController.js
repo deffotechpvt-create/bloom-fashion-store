@@ -2,8 +2,7 @@ import User from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import generateToken from '../utils/generateToken.js';
 import generateOTP from '../utils/generateOTP.js';
-import sendEmail from '../utils/sendEmail.js';
-import { otpEmailTemplate, welcomeEmailTemplate } from '../utils/emailTemplates.js';
+import { sendOTPEmail, sendWelcomeEmail } from '../utils/sendEmail.js';
 import { validationResult } from 'express-validator';
 
 // @desc    Register new user
@@ -33,13 +32,7 @@ export const register = asyncHandler(async (req, res) => {
         role: 'customer' // NEVER accept role from request
     });
     try {
-        await sendEmail({
-            email: user.email,
-            name: user.name,
-            subject: 'Welcome to E-Commerce Store!',
-            html: welcomeEmailTemplate(user.name),
-            message: `Welcome ${user.name}! Thank you for joining E-Commerce Store.`
-        });
+        sendWelcomeEmail(user.email, user.name);
     } catch (emailError) {
         console.error('Failed to send welcome email:', emailError);
     }
@@ -60,6 +53,10 @@ export const login = asyncHandler(async (req, res) => {
     }
 
     const { email, password } = req.body;
+    const existsUser = await User.findOne({ email });
+    if (!existsUser) {
+        return res.status(401).json({ success: false, message: 'User not found' });
+    }
 
     // Find user and include password
     const user = await User.findOne({ email }).select('+password');
@@ -75,7 +72,7 @@ export const login = asyncHandler(async (req, res) => {
     // Verify password
     const isPasswordMatch = await user.comparePassword(password);
     if (!isPasswordMatch) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        return res.status(401).json({ success: false, message: 'Invalid Password' });
     }
 
     const token = generateToken(user._id);
@@ -155,13 +152,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     await user.save();
 
     try {
-        await sendEmail({
-            email: user.email,
-            name: user.name,
-            subject: '🔐 Password Reset OTP - E-Commerce Store',
-            html: otpEmailTemplate(user.name, otp),
-            message: `Your password reset OTP is: ${otp}. Valid for 10 minutes.`
-        });
+        await sendOTPEmail(user.email, user.name, otp);
 
         res.status(200).json({
             success: true,
@@ -226,7 +217,7 @@ export const setupAdmin = asyncHandler(async (req, res) => {
         return res.status(401).json({ success: false, message: 'Invalid Admin Setup Key' });
     }
 
-    const user = await User.create({
+    await User.create({
         name,
         email,
         password,
